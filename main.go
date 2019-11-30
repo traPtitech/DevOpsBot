@@ -59,6 +59,7 @@ func main() {
 func DoDeploy(dc *DeployConfig) error {
 	// execコマンド生成
 	cmd := exec.Command(dc.Command, dc.CommandArgs...)
+	cmd.Dir = dc.WorkingDirectory
 
 	// ログファイル生成
 	logFilePath := filepath.Join(config.LogsDir, fmt.Sprintf("deploy-%s-%d", dc.Name, time.Now().Unix()))

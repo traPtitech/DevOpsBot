@@ -26,12 +26,13 @@ type Stamps struct {
 }
 
 type DeployConfig struct {
-	Name        string   `yaml:"-"`
-	Command     string   `yaml:"command"`
-	CommandArgs []string `yaml:"commandArgs"`
-	Operators   []string `yaml:"operators"`
-	isRunning   bool
-	mx          sync.Mutex
+	Name             string   `yaml:"-"`
+	Command          string   `yaml:"command"`
+	CommandArgs      []string `yaml:"commandArgs"`
+	WorkingDirectory string   `yaml:"workingDir"`
+	Operators        []string `yaml:"operators"`
+	isRunning        bool
+	mx               sync.Mutex
 }
 
 func LoadConfig(configFile string) (*Config, error) {
