@@ -7,18 +7,29 @@ import (
 )
 
 type Config struct {
-	TraqOrigin      string
-	DevOpsChannelID string
-	Stamps          struct {
-		ThumbsUp string
-	}
-	Deploys map[string]DeployConfig
+	BindAddr          string                   `yaml:"bindAddr"`
+	TraqOrigin        string                   `yaml:"traqOrigin"`
+	DevOpsChannelID   string                   `yaml:"devOpsChannelId"`
+	VerificationToken string                   `yaml:"verificationToken"`
+	BotAccessToken    string                   `yaml:"botAccessToken"`
+	LogsDir           string                   `yaml:"logsDir"`
+	Stamps            Stamps                   `yaml:"stamps"`
+	Deploys           map[string]*DeployConfig `yaml:"deploys"`
+}
+
+type Stamps struct {
+	Accept     string `yaml:"accept"`
+	BadCommand string `yaml:"badCommand"`
+	Forbid     string `yaml:"forbid"`
+	Success    string `yaml:"success"`
+	Failure    string `yaml:"failure"`
 }
 
 type DeployConfig struct {
-	Command     string
-	CommandArgs []string
-	Operators   []string
+	Name        string   `yaml:"-"`
+	Command     string   `yaml:"command"`
+	CommandArgs []string `yaml:"commandArgs"`
+	Operators   []string `yaml:"operators"`
 	isRunning   bool
 	mx          sync.Mutex
 }
@@ -34,5 +45,8 @@ func LoadConfig(configFile string) (*Config, error) {
 		return nil, err
 	}
 
+	for name, deployConfig := range c.Deploys {
+		deployConfig.Name = name
+	}
 	return &c, nil
 }
