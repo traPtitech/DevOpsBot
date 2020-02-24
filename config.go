@@ -7,14 +7,17 @@ import (
 )
 
 type Config struct {
-	BindAddr          string                   `yaml:"bindAddr"`
-	TraqOrigin        string                   `yaml:"traqOrigin"`
-	DevOpsChannelID   string                   `yaml:"devOpsChannelId"`
-	VerificationToken string                   `yaml:"verificationToken"`
-	BotAccessToken    string                   `yaml:"botAccessToken"`
-	LogsDir           string                   `yaml:"logsDir"`
-	Stamps            Stamps                   `yaml:"stamps"`
-	Deploys           map[string]*DeployConfig `yaml:"deploys"`
+	BindAddr           string                   `yaml:"bindAddr"`
+	TraqOrigin         string                   `yaml:"traqOrigin"`
+	DevOpsChannelID    string                   `yaml:"devOpsChannelId"`
+	VerificationToken  string                   `yaml:"verificationToken"`
+	BotAccessToken     string                   `yaml:"botAccessToken"`
+	DeployerUserName   string                   `yaml:"deployerUserName"`
+	DeployerPrivateKey string                   `yaml:"deployerPrivateKey"`
+	LogsDir            string                   `yaml:"logsDir"`
+	Stamps             Stamps                   `yaml:"stamps"`
+	DeployerHost       string                   `yaml:"deployerHost"`
+	Deploys            map[string]*DeployConfig `yaml:"deploys"`
 }
 
 type Stamps struct {
@@ -27,6 +30,7 @@ type Stamps struct {
 
 type DeployConfig struct {
 	Name             string   `yaml:"-"`
+	Host             string   `yaml:"host"`
 	Command          string   `yaml:"command"`
 	CommandArgs      []string `yaml:"commandArgs"`
 	WorkingDirectory string   `yaml:"workingDir"`
