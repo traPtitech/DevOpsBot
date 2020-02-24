@@ -112,12 +112,12 @@ func DoDeployRemote(dc *DeployConfig, logFile *os.File) error {
 	}
 
 	// ssh接続
-	conn, err := ssh.Dial("tcp", dc.Host, config)
-	defer conn.Close()
+	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", dc.Host, 22), config)
 	if err != nil {
 		logger.Error("failed to ssh to "+dc.Host, zap.Error(err))
 		return err
 	}
+	defer conn.Close()
 	session, err := conn.NewSession()
 	defer session.Close()
 	if err != nil {
