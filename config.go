@@ -2,22 +2,21 @@ package main
 
 import (
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"sync"
+	"os"
 )
 
 type Config struct {
-	BindAddr           string                   `yaml:"bindAddr"`
-	TraqOrigin         string                   `yaml:"traqOrigin"`
-	DevOpsChannelID    string                   `yaml:"devOpsChannelId"`
-	VerificationToken  string                   `yaml:"verificationToken"`
-	BotAccessToken     string                   `yaml:"botAccessToken"`
-	DeployerUserName   string                   `yaml:"deployerUserName"`
-	DeployerPrivateKey string                   `yaml:"deployerPrivateKey"`
-	LogsDir            string                   `yaml:"logsDir"`
-	Stamps             Stamps                   `yaml:"stamps"`
-	DeployerHost       string                   `yaml:"deployerHost"`
-	Deploys            map[string]*DeployConfig `yaml:"deploys"`
+	BindAddr          string   `yaml:"bindAddr"`
+	TraqOrigin        string   `yaml:"traqOrigin"`
+	DevOpsChannelID   string   `yaml:"devOpsChannelId"`
+	VerificationToken string   `yaml:"verificationToken"`
+	BotAccessToken    string   `yaml:"botAccessToken"`
+	LocalHostName     string   `yaml:"localhostName"`
+	DefaultSSHUser    string   `yaml:"defaultSSHUser"`
+	SSHPrivateKey     string   `yaml:"sshPrivateKey"`
+	LogsDir           string   `yaml:"logsDir"`
+	Stamps            Stamps   `yaml:"stamps"`
+	Services          Services `yaml:"services"`
 }
 
 type Stamps struct {
@@ -28,30 +27,16 @@ type Stamps struct {
 	Failure    string `yaml:"failure"`
 }
 
-type DeployConfig struct {
-	Name             string   `yaml:"-"`
-	Host             string   `yaml:"host"`
-	Command          string   `yaml:"command"`
-	CommandArgs      []string `yaml:"commandArgs"`
-	WorkingDirectory string   `yaml:"workingDir"`
-	Operators        []string `yaml:"operators"`
-	isRunning        bool
-	mx               sync.Mutex
-}
-
 func LoadConfig(configFile string) (*Config, error) {
-	b, err := ioutil.ReadFile(configFile)
+	f, err := os.Open(configFile)
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 
 	var c Config
-	if err := yaml.Unmarshal(b, &c); err != nil {
+	if err := yaml.NewDecoder(f).Decode(&c); err != nil {
 		return nil, err
-	}
-
-	for name, deployConfig := range c.Deploys {
-		deployConfig.Name = name
 	}
 	return &c, nil
 }

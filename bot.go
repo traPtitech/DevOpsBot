@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/dghubble/sling"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"net/http"
 	"strings"
 	"time"
@@ -63,9 +64,23 @@ func BotMessageReceived(p MessageCreatedPayload) {
 	}
 
 	args := strings.Fields(p.Message.PlainText)
-	c, ok := commandList[args[0]]
-	if ok {
-		c(p, args)
+	if len(args[0]) == 0 {
+		return // 空メッセージは無視
+	}
+
+	ctx := &Context{
+		P:    &p,
+		Args: args,
+	}
+	c, ok := commands[args[0]]
+	if !ok {
+		// コマンドが見つからない
+		_ = ctx.ReplyBad(fmt.Sprintf("Unknown command: `%s`", args[0]))
+		return
+	}
+	err := c.Execute(ctx)
+	if err != nil {
+		ctx.L().Error("failed to execute command", zap.Error(err))
 	}
 }
 

@@ -1,63 +1,67 @@
 package main
 
 import (
-	"fmt"
 	"go.uber.org/zap"
 )
 
-var commandList = map[string]func(p MessageCreatedPayload, args []string){
-	"deploy": commandDeploy,
+var commands = map[string]Command{}
+
+// Command コマンドインターフェース
+type Command interface {
+	// Execute コマンドを実行します
+	Execute(ctx *Context) error
 }
 
-// デプロイコマンド
-// deploy [target]
-func commandDeploy(p MessageCreatedPayload, args []string) {
-	if len(args) != 2 {
-		// 引数の数がおかしい
-		PushTRAQStamp(p.Message.ID, config.Stamps.BadCommand)
-		return
+// Context コマンド実行コンテキスト
+type Context struct {
+	P    *MessageCreatedPayload
+	Args []string
+}
+
+func (ctx *Context) GetExecutor() string {
+	return ctx.P.Message.User.Name
+}
+
+func (ctx *Context) Reply(message, stamp string) (err error) {
+	if len(message) > 0 {
+		err = SendTRAQMessage(ctx.P.Message.ChannelID, message)
+		if err != nil {
+			return
+		}
 	}
-
-	target, ok := config.Deploys[args[1]]
-	if !ok {
-		// デプロイターゲットが見つからない
-		PushTRAQStamp(p.Message.ID, config.Stamps.BadCommand)
-		return
+	if len(stamp) > 0 {
+		err = PushTRAQStamp(ctx.P.Message.ID, stamp)
+		if err != nil {
+			return
+		}
 	}
+	return
+}
 
-	if !StringArrayContains(target.Operators, p.Message.User.Name) {
-		// 許可されてない操作者
-		PushTRAQStamp(p.Message.ID, config.Stamps.Forbid)
-		return
-	}
+func (ctx *Context) ReplyBad(message ...string) (err error) {
+	return ctx.Reply(stringOrEmpty(message...), config.Stamps.BadCommand)
+}
 
-	target.mx.Lock()
-	isRunning := target.isRunning
-	if !isRunning {
-		target.isRunning = true
-	}
-	target.mx.Unlock()
+func (ctx *Context) ReplyForbid(message ...string) error {
+	return ctx.Reply(stringOrEmpty(message...), config.Stamps.Forbid)
+}
 
-	if isRunning {
-		// 既に実行中
-		return
-	}
+func (ctx *Context) ReplyAccept(message ...string) error {
+	return ctx.Reply(stringOrEmpty(message...), config.Stamps.Accept)
+}
 
-	PushTRAQStamp(p.Message.ID, config.Stamps.Accept)
+func (ctx *Context) ReplySuccess(message ...string) error {
+	return ctx.Reply(stringOrEmpty(message...), config.Stamps.Success)
+}
 
-	logger.Info("deploy starts", zap.String("target", target.Name))
-	err := DoDeploy(target)
-	logger.Info("deploy completes", zap.String("target", target.Name))
+func (ctx *Context) ReplyFailure(message ...string) error {
+	return ctx.Reply(stringOrEmpty(message...), config.Stamps.Failure)
+}
 
-	target.mx.Lock()
-	target.isRunning = false
-	target.mx.Unlock()
-
-	if err != nil {
-		PushTRAQStamp(p.Message.ID, config.Stamps.Failure)
-		SendTRAQMessage(p.Message.ChannelID, fmt.Sprintf("エラーが発生しました。詳しくはログを確認してください。%s", cite(p.Message.ID)))
-	} else {
-		PushTRAQStamp(p.Message.ID, config.Stamps.Success)
-		SendTRAQMessage(p.Message.ChannelID, fmt.Sprintf("完了しました%s", cite(p.Message.ID)))
-	}
+func (ctx *Context) L() *zap.Logger {
+	return logger.With(
+		zap.String("executor", ctx.GetExecutor()),
+		zap.String("command", ctx.P.Message.PlainText),
+		zap.Time("datetime", ctx.P.EventTime),
+	)
 }
