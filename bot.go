@@ -72,8 +72,8 @@ func BotMessageReceived(p MessageCreatedPayload) {
 // SendTRAQMessage traQにメッセージ送信
 func SendTRAQMessage(channelID string, text string) error {
 	req, err := traQClient.New().
-		Post(fmt.Sprintf("api/1.0/channels/%s/messages", channelID)).
-		BodyJSON(Map{"text": text}).
+		Post(fmt.Sprintf("api/v3/channels/%s/messages", channelID)).
+		BodyJSON(Map{"content": text}).
 		Request()
 	if err != nil {
 		return err
@@ -93,7 +93,8 @@ func SendTRAQMessage(channelID string, text string) error {
 // PushTRAQStamp traQのメッセージにスタンプを押す
 func PushTRAQStamp(messageID, stampID string) error {
 	req, err := traQClient.New().
-		Post(fmt.Sprintf("api/1.0/messages/%s/stamps/%s", messageID, stampID)).
+		Post(fmt.Sprintf("api/v3/messages/%s/stamps/%s", messageID, stampID)).
+		BodyJSON(Map{"count": 1}).
 		Request()
 	if err != nil {
 		return err
