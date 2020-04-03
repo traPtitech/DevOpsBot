@@ -12,7 +12,7 @@ require (
 	github.com/mattn/go-isatty v0.0.10 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
-	go.uber.org/zap v1.13.0
+	go.uber.org/zap v1.14.1
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/sys v0.0.0-20191128015809-6d18c012aee9 // indirect
 	gopkg.in/go-playground/validator.v9 v9.30.2 // indirect
