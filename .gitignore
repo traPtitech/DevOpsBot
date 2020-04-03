@@ -1,2 +1,5 @@
 *.iml
 /.idea/
+./DevOpsBot
+./log
+./config.yaml

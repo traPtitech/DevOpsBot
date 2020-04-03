@@ -1,0 +1,42 @@
+name: build
+
+on: [push]
+
+jobs:
+  mod:
+    name: Mod
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v1
+        with:
+          go-version: 1.13
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v1
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-gomod-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-gomod-
+      - run: go mod download
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [mod]
+    env:
+      CGO_ENABLED: "0"
+    steps:
+      - uses: actions/setup-go@v1
+        with:
+          go-version: 1.13
+      - uses: actions/checkout@v1
+      - uses: actions/cache@v1
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-gomod-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-gomod-
+      - run: go build
+      - uses: actions/upload-artifact@v1
+        with:
+          name: DevOpsBot
+          path: DevOpsBot

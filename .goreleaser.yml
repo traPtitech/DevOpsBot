@@ -7,5 +7,10 @@ builds:
   - binary: devops-bot
     env:
       - CGO_ENABLED=0
+    ldflags:
+      - -s
+      - -w
+    goarch:
+      - amd64
 archives:
   - wrap_in_directory: true
