@@ -16,11 +16,17 @@ type Services map[string]*Service
 
 // UnmarshalYAML gopkg.in/yaml.v2.Unmarshaler 実装
 func (ss *Services) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	if err := unmarshal(ss); err != nil {
+	var tmp map[string]*Service
+	if err := unmarshal(&tmp); err != nil {
 		return err
 	}
+	*ss = tmp
 	for name, s := range *ss {
 		s.Name = name
+		for name, c := range s.Commands {
+			c.Name = name
+			c.service = s
+		}
 	}
 	return nil
 }
@@ -59,18 +65,6 @@ type Service struct {
 	Operators []string `yaml:"operators"`
 	// Commands サービスコマンド
 	Commands map[string]*ServiceCommand `yaml:"commands"`
-}
-
-// UnmarshalYAML gopkg.in/yaml.v2.Unmarshaler 実装
-func (s *Service) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	if err := unmarshal(s); err != nil {
-		return err
-	}
-	for name, c := range s.Commands {
-		c.Name = name
-		c.service = s
-	}
-	return nil
 }
 
 // Execute Commandインターフェース実装
