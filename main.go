@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/patrickmn/go-cache"
 	"net/http"
 	"time"
 
@@ -11,8 +12,9 @@ import (
 )
 
 var (
-	config *Config
-	logger *zap.Logger
+	config        *Config
+	logger        *zap.Logger
+	logAccessUrls *cache.Cache
 )
 
 func main() {
@@ -31,9 +33,13 @@ func main() {
 		logger.Fatal("failed to load config", zap.Error(err))
 	}
 	commands["service"] = config.Services
+	commands["exec-log"] = &ExecLogCommand{}
 
 	// traQクライアント初期化
 	traQClient = sling.New().Base(config.TraqOrigin).Set("Authorization", "Bearer "+config.BotAccessToken)
+
+	// アクセスキーマップ初期化
+	logAccessUrls = cache.New(3*time.Minute, 5*time.Minute)
 
 	// HTTPルーター初期化
 	gin.SetMode(gin.ReleaseMode)
@@ -45,6 +51,7 @@ func main() {
 	router.GET("/health", func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	})
+	router.GET("/log/:key", GetLog)
 
 	router.Run(config.BindAddr)
 }

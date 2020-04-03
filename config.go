@@ -8,6 +8,7 @@ import (
 type Config struct {
 	BindAddr          string   `yaml:"bindAddr"`
 	TraqOrigin        string   `yaml:"traqOrigin"`
+	DevOpsBotOrigin   string   `yaml:"devOpsBotOrigin"`
 	DevOpsChannelID   string   `yaml:"devOpsChannelId"`
 	VerificationToken string   `yaml:"verificationToken"`
 	BotAccessToken    string   `yaml:"botAccessToken"`

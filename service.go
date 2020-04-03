@@ -192,9 +192,9 @@ func (sc *ServiceCommand) Execute(ctx *Context) error {
 	sc.m.Unlock()
 
 	if err != nil {
-		return ctx.ReplyFailure(fmt.Sprintf("エラーが発生しました。詳しくはログを確認してください。%s", cite(ctx.P.Message.ID)))
+		return ctx.ReplyFailure(fmt.Sprintf("An error has occured while executing command. \nPlease check the execution log. `exec-log %s %s %d` %s", sc.service.Name, sc.Command, ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
 	}
-	return ctx.ReplySuccess(fmt.Sprintf("Command execution was successful: %s", cite(ctx.P.Message.ID)))
+	return ctx.ReplySuccess(fmt.Sprintf("Command execution was successful. \n log: `exec-log %s %s %d` %s", sc.service.Name, sc.Command, ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
 }
 
 func (sc *ServiceCommand) execute(ctx *Context) error {
@@ -290,11 +290,19 @@ func (sc *ServiceCommand) executeLocal(ctx *Context) error {
 
 // makeLogFile ログファイル生成
 func (sc *ServiceCommand) makeLogFile(ctx *Context) (*os.File, error) {
-	logFilePath := filepath.Join(config.LogsDir, fmt.Sprintf("execution-%s-%s-%d", sc.service.Name, sc.Name, ctx.P.EventTime.Unix()))
+	logFilePath := filepath.Join(config.LogsDir, sc.getLogFileName(ctx))
 	logFile, err := os.Create(logFilePath)
 	if err != nil {
 		ctx.L().Error("failed to create log file", zap.String("path", logFilePath), zap.Error(err))
 		return nil, err
 	}
 	return logFile, nil
+}
+
+func (sc *ServiceCommand) getLogFileName(ctx *Context) string {
+	return sc.getLogFileNameByUnixTime(ctx.P.EventTime.Unix())
+}
+
+func (sc *ServiceCommand) getLogFileNameByUnixTime(unix int64) string {
+	return fmt.Sprintf("exec-%s-%s-%d", sc.service.Name, sc.Name, unix)
 }

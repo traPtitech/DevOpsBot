@@ -38,6 +38,10 @@ func (ctx *Context) Reply(message, stamp string) (err error) {
 	return
 }
 
+func (ctx *Context) ReplyViaDM(message string) error {
+	return SendTRAQDirectMessage(ctx.P.Message.User.ID, message)
+}
+
 func (ctx *Context) ReplyBad(message ...string) (err error) {
 	return ctx.Reply(stringOrEmpty(message...), config.Stamps.BadCommand)
 }

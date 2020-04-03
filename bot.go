@@ -105,6 +105,27 @@ func SendTRAQMessage(channelID string, text string) error {
 	return nil
 }
 
+// SendTRAQDirectMessage traQにダイレクトメッセージ送信
+func SendTRAQDirectMessage(userID string, text string) error {
+	req, err := traQClient.New().
+		Post(fmt.Sprintf("api/v3/users/%s/messages", userID)).
+		BodyJSON(Map{"content": text}).
+		Request()
+	if err != nil {
+		return err
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusCreated {
+		return errors.New(res.Status)
+	}
+	return nil
+}
+
 // PushTRAQStamp traQのメッセージにスタンプを押す
 func PushTRAQStamp(messageID, stampID string) error {
 	req, err := traQClient.New().
