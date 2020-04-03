@@ -186,9 +186,9 @@ func (sc *ServiceCommand) Execute(ctx *Context) error {
 	sc.m.Unlock()
 
 	if err != nil {
-		return ctx.ReplyFailure(fmt.Sprintf("An error has occured while executing command. \nPlease check the execution log. `exec-log %s %s %d` %s", sc.service.Name, sc.Command, ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
+		return ctx.ReplyFailure(fmt.Sprintf("An error has occured while executing command. \nPlease check the execution log. `exec-log %s %s %d` %s", sc.service.Name, sc.Name, ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
 	}
-	return ctx.ReplySuccess(fmt.Sprintf("Command execution was successful. \n log: `exec-log %s %s %d` %s", sc.service.Name, sc.Command, ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
+	return ctx.ReplySuccess(fmt.Sprintf("Command execution was successful. \n log: `exec-log %s %s %d` %s", sc.service.Name, sc.Name, ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
 }
 
 func (sc *ServiceCommand) execute(ctx *Context) error {
