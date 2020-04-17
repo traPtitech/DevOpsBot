@@ -64,5 +64,6 @@ func (ec *ExecLogCommand) Execute(ctx *Context) error {
 
 	key := RandAlphabetAndNumberString(30)
 	logAccessUrls.Set(key, logName, cache.DefaultExpiration)
+	_ = ctx.ReplyAccept()
 	return ctx.ReplyViaDM(fmt.Sprintf("%s/log/%s\nThis URL is valid for 3 minutes.", config.DevOpsBotOrigin, key))
 }
