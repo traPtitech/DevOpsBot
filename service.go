@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/ssh"
@@ -22,8 +23,16 @@ func (ss *Services) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 	*ss = tmp
 	for name, s := range *ss {
+		// helpは予約済み
+		if name == "help" {
+			return errors.New("`help` cannot be used as service name")
+		}
 		s.Name = name
 		for name, c := range s.Commands {
+			// helpは予約済み
+			if name == "help" {
+				return errors.New("`help` cannot be used as service command name")
+			}
 			c.Name = name
 			c.service = s
 		}
@@ -39,6 +48,11 @@ func (ss Services) Execute(ctx *Context) error {
 	// ctx.Args = service [name] [command]
 	args := ctx.Args[1:]
 
+	if args[0] == "help" {
+		// サービス一覧表示
+		return ctx.Reply(ss.MakeHelpMessage(), "")
+	}
+
 	s, ok := ss[args[0]]
 	if !ok {
 		// サービスが見つからない
@@ -47,10 +61,31 @@ func (ss Services) Execute(ctx *Context) error {
 	return s.Execute(ctx)
 }
 
+// MakeHelpMessage service help用のメッセージを作成
+func (ss Services) MakeHelpMessage() string {
+	var sb strings.Builder
+	sb.WriteString("## service\n")
+	sb.WriteString("\n\n")
+	sb.WriteString("### usage:\n")
+	sb.WriteString("`service [service_name] [command]`\n")
+	sb.WriteString("\n\n")
+	sb.WriteString("### services:\n")
+	for name, s := range ss {
+		if len(s.Description) > 0 {
+			sb.WriteString(fmt.Sprintf("+ `%s` - %s\n", name, s.Description))
+		} else {
+			sb.WriteString(fmt.Sprintf("+ `%s`\n", name))
+		}
+	}
+	return sb.String()
+}
+
 // Service サービス
 type Service struct {
 	// Name サービス名
 	Name string `yaml:"-"`
+	// Description サービス説明
+	Description string `yaml:"description"`
 	// Host サービス稼働ホスト名
 	//
 	// このホスト上でコマンドが実行されます
@@ -75,6 +110,11 @@ func (s *Service) Execute(ctx *Context) error {
 	// ctx.Args = service [name] [command]
 	args := ctx.Args[2:]
 
+	if args[0] == "help" {
+		// サービスヘルプを表示
+		return ctx.Reply(s.MakeHelpMessage(), "")
+	}
+
 	c, ok := s.Commands[args[0]]
 	if !ok {
 		// コマンドが見つからない
@@ -83,10 +123,37 @@ func (s *Service) Execute(ctx *Context) error {
 	return c.Execute(ctx)
 }
 
+// MakeHelpMessage service [name] help用のメッセージを作成
+func (s *Service) MakeHelpMessage() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("## service: %s\n", s.Name))
+	sb.WriteString("\n\n")
+	sb.WriteString("### usage:\n")
+	sb.WriteString(fmt.Sprintf("`service %s [command]`\n", s.Name))
+	sb.WriteString("\n\n")
+	sb.WriteString("### commands:\n")
+	for name, c := range s.Commands {
+		sb.WriteString(fmt.Sprintf("+ `%s`\n", name))
+
+		if len(s.Description) > 0 {
+			sb.WriteString(fmt.Sprintf("  + %s\n", s.Description))
+		}
+
+		var quotedUsers []string
+		for _, u := range c.GetOperators() {
+			quotedUsers = append(quotedUsers, fmt.Sprintf("`%s`", u))
+		}
+		sb.WriteString(fmt.Sprintf("  + available users: %s\n", strings.Join(quotedUsers, ",")))
+	}
+	return sb.String()
+}
+
 // ServiceCommand サービスコマンド
 type ServiceCommand struct {
 	// Name コマンド名
 	Name string `yaml:"-"`
+	// Description コマンド説明
+	Description string `yaml:"description"`
 	// Host サービス稼働ホスト名
 	//
 	// この設定はサービス設定のHostをオーバーライドします
@@ -146,12 +213,16 @@ func (sc *ServiceCommand) GetSSHUser() string {
 	}
 }
 
+func (sc *ServiceCommand) GetOperators() []string {
+	if len(sc.Operators) > 0 {
+		return sc.Operators
+	}
+	return sc.service.Operators
+}
+
 // CheckOperator nameユーザーがこのコマンドを実行可能かどうか
 func (sc *ServiceCommand) CheckOperator(name string) bool {
-	if len(sc.Operators) > 0 {
-		return StringArrayContains(sc.Operators, name)
-	}
-	return StringArrayContains(sc.service.Operators, name)
+	return StringArrayContains(sc.GetOperators(), name)
 }
 
 // Execute Commandインターフェース実装
