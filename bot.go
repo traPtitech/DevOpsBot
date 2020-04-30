@@ -149,5 +149,5 @@ func PushTRAQStamp(messageID, stampID string) error {
 
 // cite traQのメッセージ引用形式を作る
 func cite(messageId string) string {
-	return fmt.Sprintf(`!{"raw":"","type":"message","id":"%s"}`, messageId)
+	return fmt.Sprintf(`%smessages/%s`, config.TraqOrigin, messageId)
 }
