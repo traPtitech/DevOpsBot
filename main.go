@@ -36,6 +36,7 @@ func main() {
 	}
 	commands["service"] = config.Services
 	commands["exec-log"] = &ExecLogCommand{}
+	commands["version"] = &VersionCommand{}
 
 	// traQクライアント初期化
 	traQClient = sling.New().Base(config.TraqOrigin).Set("Authorization", "Bearer "+config.BotAccessToken)
@@ -61,4 +62,10 @@ func main() {
 	}
 
 	router.Run(config.BindAddr)
+}
+
+type VersionCommand struct{}
+
+func (v VersionCommand) Execute(ctx *Context) error {
+	return ctx.ReplySuccess(fmt.Sprintf("DevOpsBot `%s`", version))
 }
