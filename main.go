@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/patrickmn/go-cache"
 	"net/http"
 	"time"
@@ -12,6 +13,7 @@ import (
 )
 
 var (
+	version       = "UNKNOWN"
 	config        *Config
 	logger        *zap.Logger
 	logAccessUrls *cache.Cache
@@ -52,6 +54,11 @@ func main() {
 		c.Status(http.StatusOK)
 	})
 	router.GET("/log/:key", GetLog)
+
+	// 起動
+	if err := SendTRAQMessage(config.DevOpsChannelID, fmt.Sprintf("DevOpsBot `%s` is ready", version)); err != nil {
+		logger.Fatal("failed to send starting message", zap.Error(err))
+	}
 
 	router.Run(config.BindAddr)
 }

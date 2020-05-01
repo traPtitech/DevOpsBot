@@ -10,6 +10,7 @@ builds:
     ldflags:
       - -s
       - -w
+      - -X main.version={{.Version}}
     goarch:
       - amd64
 archives:
