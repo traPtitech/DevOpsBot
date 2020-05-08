@@ -14,14 +14,18 @@ type Command interface {
 
 // Context コマンド実行コンテキスト
 type Context struct {
-	P    *MessageCreatedPayload
+	// P BOTが受信したMESSAGE_CREATEDイベントの生のペイロード
+	P *MessageCreatedPayload
+	// Args 投稿メッセージを空白区切りで分けたもの
 	Args []string
 }
 
+// GetExecutor コマンドを実行した人(traQメッセージの投稿者のtraQ IDを返します
 func (ctx *Context) GetExecutor() string {
 	return ctx.P.Message.User.Name
 }
 
+// ReplyViaDM コマンドメッセージに返信します
 func (ctx *Context) Reply(message, stamp string) (err error) {
 	if len(message) > 0 {
 		err = SendTRAQMessage(ctx.P.Message.ChannelID, message)
@@ -38,26 +42,32 @@ func (ctx *Context) Reply(message, stamp string) (err error) {
 	return
 }
 
+// ReplyViaDM コマンド実行者にDMで返信します
 func (ctx *Context) ReplyViaDM(message string) error {
 	return SendTRAQDirectMessage(ctx.P.Message.User.ID, message)
 }
 
+// ReplyBad コマンドメッセージにBadスタンプをつけて返信します
 func (ctx *Context) ReplyBad(message ...string) (err error) {
 	return ctx.Reply(stringOrEmpty(message...), config.Stamps.BadCommand)
 }
 
+// ReplyForbid コマンドメッセージにForbidスタンプをつけて返信します
 func (ctx *Context) ReplyForbid(message ...string) error {
 	return ctx.Reply(stringOrEmpty(message...), config.Stamps.Forbid)
 }
 
+// ReplyAccept コマンドメッセージにAcceptスタンプをつけて返信します
 func (ctx *Context) ReplyAccept(message ...string) error {
 	return ctx.Reply(stringOrEmpty(message...), config.Stamps.Accept)
 }
 
+// ReplySuccess コマンドメッセージにSuccessスタンプをつけて返信します
 func (ctx *Context) ReplySuccess(message ...string) error {
 	return ctx.Reply(stringOrEmpty(message...), config.Stamps.Success)
 }
 
+// ReplyFailure コマンドメッセージにFailureスタンプをつけて返信します
 func (ctx *Context) ReplyFailure(message ...string) error {
 	return ctx.Reply(stringOrEmpty(message...), config.Stamps.Failure)
 }

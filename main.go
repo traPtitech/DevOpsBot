@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	"github.com/patrickmn/go-cache"
 	"net/http"
 	"time"
 
 	"github.com/dghubble/sling"
-	ginzap "github.com/gin-contrib/zap"
-	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
@@ -45,27 +45,20 @@ func main() {
 	logAccessUrls = cache.New(3*time.Minute, 5*time.Minute)
 
 	// HTTPルーター初期化
-	gin.SetMode(gin.ReleaseMode)
-	router := gin.New()
-	router.Use(ginzap.Ginzap(logger, time.RFC3339Nano, false))
-	router.Use(ginzap.RecoveryWithZap(logger, true))
-
-	router.POST("/_bot", BotEndPoint)
-	router.GET("/health", func(c *gin.Context) {
-		c.Status(http.StatusOK)
-	})
-	router.GET("/log/:key", GetLog)
+	r := chi.NewRouter()
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.RequestLogger(&AccessLoggingFormatter{l: logger.Named("http")}))
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.Heartbeat("/ping"))
+	r.Post("/_bot", BotEndPoint)
+	r.Get("/log/{key}", GetLog)
 
 	// 起動
-	if err := SendTRAQMessage(config.DevOpsChannelID, fmt.Sprintf("DevOpsBot `%s` is ready", version)); err != nil {
+	if err := SendTRAQMessage(config.DevOpsChannelID, fmt.Sprintf("DevOpsBot `v%s` is ready", version)); err != nil {
 		logger.Fatal("failed to send starting message", zap.Error(err))
 	}
 
-	router.Run(config.BindAddr)
-}
-
-type VersionCommand struct{}
-
-func (v VersionCommand) Execute(ctx *Context) error {
-	return ctx.ReplySuccess(fmt.Sprintf("DevOpsBot `%s`", version))
+	logger.Info(fmt.Sprintf("DevOpsBot `v%s` is ready", version))
+	http.ListenAndServe(config.BindAddr, r)
 }

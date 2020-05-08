@@ -2,30 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi"
 	"github.com/patrickmn/go-cache"
 	"net/http"
 	"path/filepath"
 	"strconv"
 )
 
-func GetLog(c *gin.Context) {
-	key := c.Param("key")
-	if len(key) == 0 {
-		c.Status(http.StatusNotFound)
-		return
-	}
-
-	logName, ok := logAccessUrls.Get(key)
-	if !ok {
-		c.Status(http.StatusNotFound)
-		return
-	}
-
-	c.FileAttachment(filepath.Join(config.LogsDir, logName.(string)), logName.(string))
-	return
-}
-
+// ExecLogCommand `exec-log [service] [command] [unix]`
 type ExecLogCommand struct {
 }
 
@@ -62,8 +46,26 @@ func (ec *ExecLogCommand) Execute(ctx *Context) error {
 		return ctx.ReplyBad("Log not found")
 	}
 
-	key := RandAlphabetAndNumberString(30)
+	key := RandAlphaNumericString(30)
 	logAccessUrls.Set(key, logName, cache.DefaultExpiration)
 	_ = ctx.ReplyAccept()
 	return ctx.ReplyViaDM(fmt.Sprintf("%s/log/%s\nThis URL is valid for 3 minutes.", config.DevOpsBotOrigin, key))
+}
+
+func GetLog(w http.ResponseWriter, r *http.Request) {
+	key := chi.URLParam(r, "key")
+	if len(key) == 0 {
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+
+	logName, ok := logAccessUrls.Get(key)
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", logName.(string)))
+	http.ServeFile(w, r, filepath.Join(config.LogsDir, logName.(string)))
+	return
 }

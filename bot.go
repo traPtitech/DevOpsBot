@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dghubble/sling"
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/render"
 	"go.uber.org/zap"
 	"net/http"
 	"strings"
@@ -33,27 +33,26 @@ type MessageCreatedPayload struct {
 }
 
 // BotEndPoint Botサーバーエンドポイント
-func BotEndPoint(c *gin.Context) {
+func BotEndPoint(w http.ResponseWriter, r *http.Request) {
 	// トークン検証
-	if c.GetHeader("X-TRAQ-BOT-TOKEN") != config.VerificationToken {
-		c.Status(http.StatusUnauthorized)
+	if r.Header.Get("X-TRAQ-BOT-TOKEN") != config.VerificationToken {
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 		return
 	}
 
-	event := c.GetHeader("X-TRAQ-BOT-EVENT")
-	switch event {
+	switch r.Header.Get("X-TRAQ-BOT-EVENT") {
 	case "PING", "JOINED", "LEFT":
-		c.Status(http.StatusNoContent)
+		w.WriteHeader(http.StatusNoContent)
 	case "MESSAGE_CREATED":
 		var payload MessageCreatedPayload
-		if err := c.ShouldBindJSON(&payload); err != nil {
-			c.Status(http.StatusBadRequest)
+		if err := render.Decode(r, &payload); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		go BotMessageReceived(payload)
-		c.Status(http.StatusNoContent)
+		w.WriteHeader(http.StatusNoContent)
 	default:
-		c.Status(http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 	}
 }
 
