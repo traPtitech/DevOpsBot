@@ -6,6 +6,8 @@ import (
 	"github.com/kballard/go-shellquote"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/ssh"
+	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -177,6 +179,8 @@ type ServiceCommand struct {
 	AllowConcurrency bool `yaml:"allowConcurrency"`
 	// AppendVariableArgs このコマンドの実行引数に、メッセージから追加で与えられた引数を追記するか
 	AppendVariableArgs bool `yaml:"appendVariableArgs"`
+	// PrintOutputOnMessage コマンド実行結果をメッセージとして送信するか
+	PrintOutputOnMessage bool `yaml:"printOutputOnMessage"`
 
 	service *Service   `yaml:"-"`
 	running bool       `yaml:"-"`
@@ -255,10 +259,45 @@ func (sc *ServiceCommand) Execute(ctx *Context) error {
 	sc.running = false
 	sc.m.Unlock()
 
-	if err != nil {
-		return ctx.ReplyFailure(fmt.Sprintf("An error has occured while executing command. \nPlease check the execution log. `exec-log %s %s %d` %s", sc.service.Name, sc.Name, ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
+	success := err == nil
+
+	if !sc.PrintOutputOnMessage {
+		if success {
+			return ctx.ReplySuccess(fmt.Sprintf("Command execution was successful. \n log: `exec-log %s %s %d` %s", sc.service.Name, sc.Name, ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
+		}
+		return ctx.ReplyFailure(fmt.Sprintf("An error has occurred while executing command. \nPlease check the execution log. `exec-log %s %s %d` %s", sc.service.Name, sc.Name, ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
 	}
-	return ctx.ReplySuccess(fmt.Sprintf("Command execution was successful. \n log: `exec-log %s %s %d` %s", sc.service.Name, sc.Name, ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
+
+	logFile, err := sc.openLogFile(ctx)
+	if err != nil {
+		ctx.L().Error("failed to open log file", zap.Error(err))
+		return ctx.ReplyFailure("An internal error has occurred")
+	}
+	defer logFile.Close()
+	b, err := ioutil.ReadAll(io.LimitReader(logFile, 1<<20)) // 1KBまでに抑えとく
+	if err != nil {
+		ctx.L().Error("failed to read log file", zap.Error(err))
+		return ctx.ReplyFailure("An internal error has occurred")
+	}
+
+	var message strings.Builder
+	if success {
+		message.WriteString("Command execution was successful.\n")
+	} else {
+		message.WriteString("An error has occurred while executing command.\n")
+	}
+	message.WriteString(fmt.Sprintf("```:exec-%s-%s-%d\n", sc.service.Name, sc.Name, ctx.P.EventTime.Unix()))
+	message.Write(b)
+	if !strings.HasSuffix(string(b), "\n") {
+		message.WriteString("\n")
+	}
+	message.WriteString("```\n")
+	message.WriteString(cite(ctx.P.Message.ID))
+
+	if success {
+		return ctx.ReplySuccess(message.String())
+	}
+	return ctx.ReplyFailure(message.String())
 }
 
 func (sc *ServiceCommand) execute(ctx *Context) error {
@@ -274,7 +313,7 @@ func (sc *ServiceCommand) execute(ctx *Context) error {
 // executeRemote SSHで実行
 func (sc *ServiceCommand) executeRemote(ctx *Context) error {
 	// ログファイル生成
-	logFile, err := sc.makeLogFile(ctx)
+	logFile, err := sc.openLogFile(ctx)
 	if err != nil {
 		return err
 	}
@@ -333,7 +372,7 @@ func (sc *ServiceCommand) executeRemote(ctx *Context) error {
 // executeLocal ローカルで実行
 func (sc *ServiceCommand) executeLocal(ctx *Context) error {
 	// ログファイル生成
-	logFile, err := sc.makeLogFile(ctx)
+	logFile, err := sc.openLogFile(ctx)
 	if err != nil {
 		return err
 	}
@@ -363,12 +402,12 @@ func (sc *ServiceCommand) executeLocal(ctx *Context) error {
 	return cmd.Wait()
 }
 
-// makeLogFile ログファイル生成
-func (sc *ServiceCommand) makeLogFile(ctx *Context) (*os.File, error) {
+// openLogFile ログファイルを開く
+func (sc *ServiceCommand) openLogFile(ctx *Context) (*os.File, error) {
 	logFilePath := filepath.Join(config.LogsDir, sc.getLogFileName(ctx))
-	logFile, err := os.Create(logFilePath)
+	logFile, err := os.OpenFile(logFilePath, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
-		ctx.L().Error("failed to create log file", zap.String("path", logFilePath), zap.Error(err))
+		ctx.L().Error("failed to open log file", zap.String("path", logFilePath), zap.Error(err))
 		return nil, err
 	}
 	return logFile, nil
