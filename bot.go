@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/dghubble/sling"
 	"github.com/go-chi/render"
+	"github.com/kballard/go-shellquote"
 	"go.uber.org/zap"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -62,7 +62,12 @@ func BotMessageReceived(p MessageCreatedPayload) {
 		return // DevOpsチャンネル以外からのメッセージは無視
 	}
 
-	args := strings.Fields(p.Message.PlainText)
+	args, err := shellquote.Split(p.Message.PlainText)
+	if err != nil {
+		_ = SendTRAQMessage(p.Message.ChannelID, fmt.Sprintf("invalid syntax error\n%s", cite(p.Message.ID)))
+		_ = PushTRAQStamp(p.Message.ID, config.Stamps.BadCommand)
+		return
+	}
 	if len(args[0]) == 0 {
 		return // 空メッセージは無視
 	}
@@ -77,7 +82,7 @@ func BotMessageReceived(p MessageCreatedPayload) {
 		_ = ctx.ReplyBad(fmt.Sprintf("Unknown command: `%s`", args[0]))
 		return
 	}
-	err := c.Execute(ctx)
+	err = c.Execute(ctx)
 	if err != nil {
 		ctx.L().Error("failed to execute command", zap.Error(err))
 	}

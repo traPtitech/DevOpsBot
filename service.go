@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/kballard/go-shellquote"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/ssh"
 	"os"
@@ -174,6 +175,8 @@ type ServiceCommand struct {
 	Operators []string `yaml:"operators"`
 	// AllowConcurrency このコマンドの同時並列実行を許可するか
 	AllowConcurrency bool `yaml:"allowConcurrency"`
+	// AppendVariableArgs このコマンドの実行引数に、メッセージから追加で与えられた引数を追記するか
+	AppendVariableArgs bool `yaml:"appendVariableArgs"`
 
 	service *Service   `yaml:"-"`
 	running bool       `yaml:"-"`
@@ -310,7 +313,12 @@ func (sc *ServiceCommand) executeRemote(ctx *Context) error {
 	session.Stderr = logFile
 
 	// コマンド生成
-	cmdStr := fmt.Sprintf("cd %s; %s %s", sc.WorkingDirectory, sc.Command, strings.Join(sc.CommandArgs, " "))
+	execCmd := append([]string{sc.Command}, sc.CommandArgs...)
+	if sc.AppendVariableArgs {
+		execCmd = append(execCmd, ctx.Args[3:]...)
+	}
+
+	cmdStr := fmt.Sprintf("%s && %s", shellquote.Join("cd", sc.WorkingDirectory), shellquote.Join(execCmd...))
 
 	// コマンド実行
 	if err = session.Start(cmdStr); err != nil {
@@ -332,7 +340,13 @@ func (sc *ServiceCommand) executeLocal(ctx *Context) error {
 	defer logFile.Close()
 
 	// execコマンド生成
-	cmd := exec.Command(sc.Command, sc.CommandArgs...)
+	args := make([]string, 0)
+	args = append(args, sc.CommandArgs...)
+	if sc.AppendVariableArgs {
+		args = append(args, ctx.Args[3:]...)
+	}
+
+	cmd := exec.Command(sc.Command, args...)
 	cmd.Dir = sc.WorkingDirectory
 
 	// ログファイル設定
