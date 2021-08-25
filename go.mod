@@ -1,6 +1,6 @@
 module github.com/traPtitech/DevOpsBot
 
-go 1.14
+go 1.17
 
 require (
 	github.com/dghubble/sling v1.3.0
@@ -13,4 +13,10 @@ require (
 	golang.org/x/sys v0.0.0-20200116001909-b77594299b42 // indirect
 	golang.org/x/text v0.3.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0
+)
+
+require (
+	github.com/google/go-querystring v1.0.0 // indirect
+	go.uber.org/atomic v1.7.0 // indirect
+	go.uber.org/multierr v1.6.0 // indirect
 )
