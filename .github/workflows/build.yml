@@ -7,11 +7,11 @@ jobs:
     name: Mod
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v1
+      - uses: actions/setup-go@v2
         with:
           go-version: 1.17
       - uses: actions/checkout@v2
-      - uses: actions/cache@v1
+      - uses: actions/cache@v2
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-gomod-${{ hashFiles('**/go.sum') }}
@@ -25,18 +25,18 @@ jobs:
     env:
       CGO_ENABLED: "0"
     steps:
-      - uses: actions/setup-go@v1
+      - uses: actions/setup-go@v2
         with:
           go-version: 1.17
       - uses: actions/checkout@v2
-      - uses: actions/cache@v1
+      - uses: actions/cache@v2
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-gomod-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-gomod-
       - run: go build
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v2
         with:
           name: DevOpsBot
           path: DevOpsBot
