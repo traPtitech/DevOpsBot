@@ -263,9 +263,9 @@ func (sc *ServiceCommand) Execute(ctx *Context) error {
 
 	if !sc.PrintOutputOnMessage {
 		if success {
-			return ctx.ReplySuccess(fmt.Sprintf("Command execution was successful. \n log: `exec-log %s %s %d` %s", sc.service.Name, sc.Name, ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
+			return ctx.ReplySuccess(fmt.Sprintf(":white_check_mark: Command execution was successful. \n log: `exec-log %s %s %d` %s", sc.service.Name, sc.Name, ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
 		}
-		return ctx.ReplyFailure(fmt.Sprintf("An error has occurred while executing command. \nPlease check the execution log. `exec-log %s %s %d` %s", sc.service.Name, sc.Name, ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
+		return ctx.ReplyFailure(fmt.Sprintf(":x: An error has occurred while executing command. \nPlease check the execution log. `exec-log %s %s %d` %s", sc.service.Name, sc.Name, ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
 	}
 
 	logFile, err := sc.openLogFile(ctx)
@@ -282,9 +282,9 @@ func (sc *ServiceCommand) Execute(ctx *Context) error {
 
 	var message strings.Builder
 	if success {
-		message.WriteString("Command execution was successful.\n")
+		message.WriteString(":white_check_mark: Command execution was successful.\n")
 	} else {
-		message.WriteString("An error has occurred while executing command.\n")
+		message.WriteString(":x: An error has occurred while executing command.\n")
 	}
 	message.WriteString(fmt.Sprintf("```:exec-%s-%s-%d\n", sc.service.Name, sc.Name, ctx.P.EventTime.Unix()))
 	message.Write(b)

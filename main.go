@@ -55,7 +55,7 @@ func main() {
 	r.Get("/log/{key}", GetLog)
 
 	// 起動
-	if err := SendTRAQMessage(config.DevOpsChannelID, fmt.Sprintf("DevOpsBot `v%s` is ready", version)); err != nil {
+	if err := SendTRAQMessage(config.DevOpsChannelID, fmt.Sprintf(":up: DevOpsBot `v%s` is ready", version)); err != nil {
 		logger.Fatal("failed to send starting message", zap.Error(err))
 	}
 
