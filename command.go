@@ -72,6 +72,11 @@ func (ctx *Context) ReplyFailure(message ...string) error {
 	return ctx.Reply(stringOrEmpty(message...), config.Stamps.Failure)
 }
 
+// ReplyRunning コマンドメッセージにRunningスタンプをつけて返信します
+func (ctx *Context) ReplyRunning(message ...string) error {
+	return ctx.Reply(stringOrEmpty(message...), config.Stamps.Running)
+}
+
 func (ctx *Context) L() *zap.Logger {
 	return logger.With(
 		zap.String("executor", ctx.GetExecutor()),

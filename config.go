@@ -26,6 +26,7 @@ type Stamps struct {
 	Forbid     string `yaml:"forbid"`
 	Success    string `yaml:"success"`
 	Failure    string `yaml:"failure"`
+	Running    string `yaml:"running"`
 }
 
 func LoadConfig(configFile string) (*Config, error) {

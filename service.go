@@ -252,6 +252,7 @@ func (sc *ServiceCommand) Execute(ctx *Context) error {
 	_ = ctx.ReplyAccept()
 
 	ctx.L().Info("shell command execution starts")
+	ctx.ReplyRunning()
 	err := sc.execute(ctx)
 	ctx.L().Info("shell command execution ends", zap.Error(err))
 
