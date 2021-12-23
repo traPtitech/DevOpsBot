@@ -49,7 +49,9 @@ func (ec *ExecLogCommand) Execute(ctx *Context) error {
 	key := RandAlphaNumericString(30)
 	logAccessUrls.Set(key, logName, cache.DefaultExpiration)
 	_ = ctx.ReplyAccept()
-	return ctx.ReplyViaDM(fmt.Sprintf("%s/log/%s\nThis URL is valid for 3 minutes.", config.DevOpsBotOrigin, key))
+
+	fileURL := fmt.Sprintf("%s/log/%s", config.DevOpsBotOrigin, key)
+	return ctx.ReplyViaDM(fmt.Sprintf("[View](%s) [Download](%s?dl=1)\n\nThese URL is valid for 3 minutes.", fileURL, fileURL))
 }
 
 func GetLog(w http.ResponseWriter, r *http.Request) {
@@ -58,6 +60,7 @@ func GetLog(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
+	shouldDownloadFile := r.URL.Query().Get("dl") == "1"
 
 	logName, ok := logAccessUrls.Get(key)
 	if !ok {
@@ -65,7 +68,10 @@ func GetLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", logName.(string)))
+	if shouldDownloadFile {
+		w.Header().Set("content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", logName.(string)))
+	}
+
 	http.ServeFile(w, r, filepath.Join(config.LogsDir, logName.(string)))
 	return
 }
