@@ -36,6 +36,7 @@ func main() {
 	}
 	commands["service"] = config.Services
 	commands["exec-log"] = &ExecLogCommand{}
+	commands["server"] = config.Servers
 	commands["version"] = &VersionCommand{}
 
 	// traQクライアント初期化

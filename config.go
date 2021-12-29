@@ -18,6 +18,7 @@ type Config struct {
 	LogsDir           string   `yaml:"logsDir"`
 	Stamps            Stamps   `yaml:"stamps"`
 	Services          Services `yaml:"services"`
+	Servers           Servers  `yaml:"servers"`
 }
 
 type Stamps struct {
