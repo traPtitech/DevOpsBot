@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/dghubble/sling"
 	"go.uber.org/zap"
 	"net/http"
 	"strings"
@@ -114,25 +115,26 @@ func (s Server) Execute(ctx *Context) error {
 		tenantID := "1"
 		serverID := "1"
 
-		url := fmt.Sprintf(fmt.Sprintf("%s/v2/%s/servers/%s/action", apiURL, tenantID, serverID))
-		reqBody := bytes.NewBufferString(fmt.Sprintf("{ \"reboot\": { \"type\": \"%s\" } }", args[1]))
-
-		ctx.L().Info(fmt.Sprintf("post request to %s starts", url))
-		req, err := http.NewRequest("POST", url, reqBody)
+		req, err := sling.New().Base(apiURL).
+			Post(fmt.Sprintf("v2/%s/servers/%s/action", tenantID, serverID)).
+			Body(bytes.NewBufferString(fmt.Sprintf("{ \"reboot\": { \"type\": \"%s\" } }", args[1]))).
+			Set("Accept", "application/json").
+			Set("X-Auth-Token", apiToken).
+			Request()
 		if err != nil {
 			ctx.L().Error("failed to create request", zap.Error(err))
 			return ctx.ReplyFailure("An internal error has occurred")
 		}
-		req.Header.Set("Accept", "application/json")
-		req.Header.Set("X-Auth-Token", apiToken)
 
+		ctx.L().Info(fmt.Sprintf("post request to %s starts", req.URL.String()))
 		resp, err := http.DefaultClient.Do(req)
 		defer resp.Body.Close()
 
 		ctx.L().Info("post request ends")
-		ctx.L().Info(fmt.Sprintf("status code: %d", resp.StatusCode))
 		if err != nil {
 			ctx.L().Error("failed to post request", zap.Error(err))
+		} else {
+			ctx.L().Info(fmt.Sprintf("status code: %s", resp.Status))
 		}
 
 		success := err == nil && resp.StatusCode == http.StatusAccepted
