@@ -7,7 +7,6 @@ import (
 	"go.uber.org/zap"
 	"net/http"
 	"strings"
-	"time"
 )
 
 type Servers map[string]*Server
@@ -102,13 +101,13 @@ func (s Server) Execute(ctx *Context) error {
 		apiURL, err := getEnvOrError("CONOHA_API_URL")
 		if err != nil {
 			ctx.L().Error("failed to get env CONOHA_API_URL", zap.Error(err))
-			return ctx.ReplyBad("An internal error has occurred")
+			return ctx.ReplyFailure("An internal error has occurred")
 		}
 
 		apiToken, err := getEnvOrError("CONOHA_API_TOKEN")
 		if err != nil {
 			ctx.L().Error("failed to get env CONOHA_API_TOKEN", zap.Error(err))
-			return ctx.ReplyBad("An internal error has occurred")
+			return ctx.ReplyFailure("An internal error has occurred")
 		}
 
 		// TODO: s.Name に応じて tenantID と serverID を環境変数から取得
@@ -119,23 +118,24 @@ func (s Server) Execute(ctx *Context) error {
 		reqBody := bytes.NewBufferString(fmt.Sprintf("{ \"reboot\": { \"type\": \"%s\" } }", args[1]))
 
 		ctx.L().Info(fmt.Sprintf("post request to %s starts", url))
-		req, _ := http.NewRequest("POST", url, reqBody)
+		req, err := http.NewRequest("POST", url, reqBody)
+		if err != nil {
+			ctx.L().Error("failed to create request", zap.Error(err))
+			return ctx.ReplyFailure("An internal error has occurred")
+		}
 		req.Header.Set("Accept", "application/json")
 		req.Header.Set("X-Auth-Token", apiToken)
 
-		client := &http.Client{
-			Timeout: 10 * time.Second,
-		}
-		resp, err := client.Do(req)
+		resp, err := http.DefaultClient.Do(req)
 		defer resp.Body.Close()
 
 		ctx.L().Info("post request ends")
 		ctx.L().Info(fmt.Sprintf("status code: %d", resp.StatusCode))
 		if err != nil {
-			ctx.L().Error("failed to request", zap.Error(err))
+			ctx.L().Error("failed to post request", zap.Error(err))
 		}
 
-		success := err == nil && resp.StatusCode == 202
+		success := err == nil && resp.StatusCode == http.StatusAccepted
 		if success {
 			return ctx.ReplySuccess(fmt.Sprintf(":white_check_mark: Command execution was successful. %s", cite(ctx.P.Message.ID)))
 		}
