@@ -131,7 +131,7 @@ func (s Server) Execute(ctx *Context) error {
 		if resp.StatusCode == http.StatusAccepted {
 			return ctx.ReplySuccess(fmt.Sprintf(":white_check_mark: Command execution was successful. %s", cite(ctx.P.Message.ID)))
 		}
-		return ctx.ReplyFailure(fmt.Sprintf(":x: An error has occurred while executing command.\nstatus code: `%s` %s", resp.Status, cite(ctx.P.Message.ID)))
+		return ctx.ReplyFailure(fmt.Sprintf(":x: Incorrect status code was received from ConoHa API.\nstatus code: `%s` %s", resp.Status, cite(ctx.P.Message.ID)))
 	default:
 		return ctx.ReplyBad(fmt.Sprintf("Unknown command: `%s`", args[0]))
 	}
