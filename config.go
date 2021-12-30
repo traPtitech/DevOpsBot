@@ -12,6 +12,8 @@ type Config struct {
 	DevOpsChannelID   string   `yaml:"devOpsChannelId"`
 	VerificationToken string   `yaml:"verificationToken"`
 	BotAccessToken    string   `yaml:"botAccessToken"`
+	ConohaApiOrigin   string   `yaml:"conohaApiOrigin"`
+	ConohaApiToken    string   `yaml:"conohaApiToken"`
 	LocalHostName     string   `yaml:"localhostName"`
 	DefaultSSHUser    string   `yaml:"defaultSSHUser"`
 	SSHPrivateKey     string   `yaml:"sshPrivateKey"`

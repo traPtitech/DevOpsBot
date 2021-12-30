@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
@@ -61,14 +60,6 @@ func getEnvOrDefault(env, def string) string {
 		return s
 	}
 	return def
-}
-
-func getEnvOrError(env string) (string, error) {
-	s := os.Getenv(env)
-	if len(s) > 0 {
-		return s, nil
-	}
-	return "", errors.New(fmt.Sprintf("%s is not set", env))
 }
 
 func fileExists(filename string) bool {

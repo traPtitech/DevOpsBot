@@ -67,6 +67,10 @@ func (ss Servers) MakeHelpMessage() string {
 type Server struct {
 	// Name サーバー名
 	Name string `yaml:"-"`
+	// TenantID テナントID
+	TenantID string `yaml:"tenantId"`
+	// ServerID サーバーID
+	ServerID string `yaml:"serverId"`
 	// Description サーバー説明
 	Description string `yaml:"description"`
 	// Operators コマンド実行可能なユーザーの名前のデフォルト配列
@@ -92,34 +96,17 @@ func (s Server) Execute(ctx *Context) error {
 			return ctx.ReplyBad("Invalid Arguments")
 		}
 		if StringArrayContains([]string{"SOFT", "HARD"}, args[1]) {
-			return ctx.ReplyBad(fmt.Sprintf("Unknown restart type: %s", args[1]))
+			return ctx.ReplyBad(fmt.Sprintf("Unknown restart type: `%s`", args[1]))
 		}
 
 		_ = ctx.ReplyAccept()
 		_ = ctx.ReplyRunning()
 
-		// 環境変数の取得は main.go で最初に行う方が良いか
-		apiURL, err := getEnvOrError("CONOHA_API_URL")
-		if err != nil {
-			ctx.L().Error("failed to get env CONOHA_API_URL", zap.Error(err))
-			return ctx.ReplyFailure("An internal error has occurred")
-		}
-
-		apiToken, err := getEnvOrError("CONOHA_API_TOKEN")
-		if err != nil {
-			ctx.L().Error("failed to get env CONOHA_API_TOKEN", zap.Error(err))
-			return ctx.ReplyFailure("An internal error has occurred")
-		}
-
-		// TODO: s.Name に応じて tenantID と serverID を環境変数から取得
-		tenantID := "1"
-		serverID := "1"
-
-		req, err := sling.New().Base(apiURL).
-			Post(fmt.Sprintf("v2/%s/servers/%s/action", tenantID, serverID)).
+		req, err := sling.New().Base(config.ConohaApiOrigin).
+			Post(fmt.Sprintf("v2/%s/servers/%s/action", s.TenantID, s.ServerID)).
 			Body(bytes.NewBufferString(fmt.Sprintf("{ \"reboot\": { \"type\": \"%s\" } }", args[1]))).
 			Set("Accept", "application/json").
-			Set("X-Auth-Token", apiToken).
+			Set("X-Auth-Token", config.ConohaApiToken).
 			Request()
 		if err != nil {
 			ctx.L().Error("failed to create request", zap.Error(err))
@@ -162,9 +149,6 @@ func (s *Server) MakeHelpMessage() string {
 }
 
 func (s *Server) GetOperators() []string {
-	if len(s.Operators) > 0 {
-		return s.Operators
-	}
 	return s.Operators
 }
 
