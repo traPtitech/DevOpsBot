@@ -28,6 +28,7 @@ func (ss *Servers) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// Execute Commandインターフェース実装
 func (ss Servers) Execute(ctx *Context) error {
 	if len(ctx.Args) < 2 {
 		return ctx.ReplyBad("Invalid Arguments")
@@ -48,6 +49,7 @@ func (ss Servers) Execute(ctx *Context) error {
 	return s.Execute(ctx)
 }
 
+// MakeHelpMessage server help用のメッセージを作成
 func (ss Servers) MakeHelpMessage() string {
 	var sb strings.Builder
 	sb.WriteString("## server\n")
@@ -64,6 +66,7 @@ func (ss Servers) MakeHelpMessage() string {
 	return sb.String()
 }
 
+// Server サーバー
 type Server struct {
 	// Name サーバー名
 	Name string `yaml:"-"`
@@ -77,6 +80,7 @@ type Server struct {
 	Operators []string `yaml:"operators"`
 }
 
+// Execute Commandインターフェース実装
 func (s Server) Execute(ctx *Context) error {
 	if len(ctx.Args) < 3 {
 		return ctx.ReplyBad("Invalid Arguments")
@@ -120,20 +124,20 @@ func (s Server) Execute(ctx *Context) error {
 		ctx.L().Info("post request ends")
 		if err != nil {
 			ctx.L().Error("failed to post request", zap.Error(err))
-		} else {
-			ctx.L().Info(fmt.Sprintf("status code: %s", resp.Status))
+			return ctx.ReplyFailure(fmt.Sprintf(":x: An error has occurred while executing command. %s", cite(ctx.P.Message.ID)))
 		}
 
-		success := err == nil && resp.StatusCode == http.StatusAccepted
-		if success {
+		ctx.L().Info(fmt.Sprintf("status code: %s", resp.Status))
+		if resp.StatusCode == http.StatusAccepted {
 			return ctx.ReplySuccess(fmt.Sprintf(":white_check_mark: Command execution was successful. %s", cite(ctx.P.Message.ID)))
 		}
-		return ctx.ReplyFailure(fmt.Sprintf(":x: An error has occurred while executing command. %s", cite(ctx.P.Message.ID)))
+		return ctx.ReplyFailure(fmt.Sprintf(":x: An error has occurred while executing command.\nstatus code: `%s` %s", resp.Status, cite(ctx.P.Message.ID)))
 	default:
 		return ctx.ReplyBad(fmt.Sprintf("Unknown command: `%s`", args[0]))
 	}
 }
 
+// MakeHelpMessage server [name] help用のメッセージを作成
 func (s *Server) MakeHelpMessage() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("## server: %s\n", s.Name))
@@ -152,6 +156,7 @@ func (s *Server) GetOperators() []string {
 	return s.Operators
 }
 
+// CheckOperator nameユーザーがこのコマンドを実行可能かどうか
 func (s *Server) CheckOperator(name string) bool {
 	return StringArrayContains(s.GetOperators(), name)
 }
