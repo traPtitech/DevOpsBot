@@ -14,6 +14,7 @@ type Config struct {
 	BotAccessToken    string   `yaml:"botAccessToken"`
 	ConohaApiOrigin   string   `yaml:"conohaApiOrigin"`
 	ConohaApiToken    string   `yaml:"conohaApiToken"`
+	TenantID          string   `yaml:"tenantId"`
 	LocalHostName     string   `yaml:"localhostName"`
 	DefaultSSHUser    string   `yaml:"defaultSSHUser"`
 	SSHPrivateKey     string   `yaml:"sshPrivateKey"`

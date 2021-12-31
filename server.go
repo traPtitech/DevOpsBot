@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"github.com/dghubble/sling"
@@ -74,8 +73,6 @@ func (ss Servers) MakeHelpMessage() string {
 type Server struct {
 	// Name サーバー名
 	Name string `yaml:"-"`
-	// TenantID テナントID
-	TenantID string `yaml:"tenantId"`
 	// ServerID サーバーID
 	ServerID string `yaml:"serverId"`
 	// Description サーバー説明
@@ -149,22 +146,22 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 	_ = ctx.ReplyRunning()
 
 	req, err := sling.New().Base(config.ConohaApiOrigin).
-		Post(fmt.Sprintf("v2/%s/servers/%s/action", sc.server.TenantID, sc.server.ServerID)).
-		Body(bytes.NewBufferString(fmt.Sprintf("{ \"reboot\": { \"type\": \"%s\" } }", args[0]))).
-		Set("Accept", "application/json").
+		Post(fmt.Sprintf("v2/%s/servers/%s/action", config.TenantID, sc.server.ServerID)).
+		BodyJSON(Map{"reboot": Map{"type": args[0]}}).
+		Set("Content-Type", "application/json").
 		Set("X-Auth-Token", config.ConohaApiToken).
 		Request()
 	if err != nil {
-		ctx.L().Error("failed to create request", zap.Error(err))
+		ctx.L().Error("failed to create restart request", zap.String("URL", req.URL.String()), zap.Error(err))
 		return ctx.ReplyFailure("An internal error has occurred")
 	}
 
-	ctx.L().Info(fmt.Sprintf("post request to %s starts", req.URL.String()))
+	ctx.L().Info("post restart request starts", zap.String("URL", req.URL.String()))
 	resp, err := http.DefaultClient.Do(req)
 
-	ctx.L().Info("post request ends")
+	ctx.L().Info("post restart request ends")
 	if err != nil {
-		ctx.L().Error("failed to post request", zap.Error(err))
+		ctx.L().Error("failed to post restart request", zap.Error(err))
 		return ctx.ReplyFailure(fmt.Sprintf(":x: An error has occurred while executing command. %s", cite(ctx.P.Message.ID)))
 	}
 	defer resp.Body.Close()
