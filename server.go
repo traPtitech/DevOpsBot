@@ -100,7 +100,7 @@ func (s Server) Execute(ctx *Context) error {
 		if len(ctx.Args) < 4 {
 			return ctx.ReplyBad("Invalid Arguments")
 		}
-		if StringArrayContains([]string{"SOFT", "HARD"}, args[1]) {
+		if !StringArrayContains([]string{"SOFT", "HARD"}, args[1]) {
 			return ctx.ReplyBad(fmt.Sprintf("Unknown restart type: `%s`", args[1]))
 		}
 
