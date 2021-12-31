@@ -25,6 +25,9 @@ func (ss *Servers) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			return errors.New("`help` cannot be used as server name")
 		}
 		s.Name = name
+		s.Commands = map[string]ServerCommand{
+			"restart": &ServerRestartCommand{s},
+		}
 	}
 	return nil
 }
@@ -79,6 +82,9 @@ type Server struct {
 	Description string `yaml:"description"`
 	// Operators コマンド実行可能なユーザーの名前のデフォルト配列
 	Operators []string `yaml:"operators"`
+
+	// Commands サーバーコマンド UnmarshalYAMLで追加
+	Commands map[string]ServerCommand `yaml:"-"`
 }
 
 // Execute Commandインターフェース実装
@@ -89,53 +95,16 @@ func (s Server) Execute(ctx *Context) error {
 	// ctx.Args = server [server_name] restart [SOFT|HARD]
 	args := ctx.Args[2:]
 
-	switch args[0] {
-	case "help":
+	if args[0] == "help" {
 		return ctx.Reply(s.MakeHelpMessage(), "")
-	case "restart":
-		if !s.CheckOperator(ctx.GetExecutor()) {
-			return ctx.ReplyForbid()
-		}
+	}
 
-		if len(ctx.Args) < 4 {
-			return ctx.ReplyBad("Invalid Arguments")
-		}
-		if !StringArrayContains([]string{"SOFT", "HARD"}, args[1]) {
-			return ctx.ReplyBad(fmt.Sprintf("Unknown restart type: `%s`", args[1]))
-		}
-
-		_ = ctx.ReplyAccept()
-		_ = ctx.ReplyRunning()
-
-		req, err := sling.New().Base(config.ConohaApiOrigin).
-			Post(fmt.Sprintf("v2/%s/servers/%s/action", s.TenantID, s.ServerID)).
-			Body(bytes.NewBufferString(fmt.Sprintf("{ \"reboot\": { \"type\": \"%s\" } }", args[1]))).
-			Set("Accept", "application/json").
-			Set("X-Auth-Token", config.ConohaApiToken).
-			Request()
-		if err != nil {
-			ctx.L().Error("failed to create request", zap.Error(err))
-			return ctx.ReplyFailure("An internal error has occurred")
-		}
-
-		ctx.L().Info(fmt.Sprintf("post request to %s starts", req.URL.String()))
-		resp, err := http.DefaultClient.Do(req)
-		defer resp.Body.Close()
-
-		ctx.L().Info("post request ends")
-		if err != nil {
-			ctx.L().Error("failed to post request", zap.Error(err))
-			return ctx.ReplyFailure(fmt.Sprintf(":x: An error has occurred while executing command. %s", cite(ctx.P.Message.ID)))
-		}
-
-		ctx.L().Info(fmt.Sprintf("status code: %s", resp.Status))
-		if resp.StatusCode == http.StatusAccepted {
-			return ctx.ReplySuccess(fmt.Sprintf(":white_check_mark: Command execution was successful. %s", cite(ctx.P.Message.ID)))
-		}
-		return ctx.ReplyFailure(fmt.Sprintf(":x: Incorrect status code was received from ConoHa API.\nstatus code: `%s` %s", resp.Status, cite(ctx.P.Message.ID)))
-	default:
+	c, ok := s.Commands[args[0]]
+	if !ok {
+		// コマンドが見つからない
 		return ctx.ReplyBad(fmt.Sprintf("Unknown command: `%s`", args[0]))
 	}
+	return c.Execute(ctx)
 }
 
 // MakeHelpMessage server [name] help用のメッセージを作成
@@ -151,6 +120,60 @@ func (s *Server) MakeHelpMessage() string {
 	}
 	sb.WriteString(strings.Join(quotedUsers, ","))
 	return sb.String()
+}
+
+type ServerCommand interface {
+	Execute(ctx *Context) error
+}
+
+type ServerRestartCommand struct {
+	server *Server
+}
+
+func (sc *ServerRestartCommand) Execute(ctx *Context) error {
+	if !sc.server.CheckOperator(ctx.GetExecutor()) {
+		return ctx.ReplyForbid()
+	}
+
+	if len(ctx.Args) < 4 {
+		return ctx.ReplyBad("Invalid Arguments")
+	}
+	// ctx.Args = server [server_name] restart [SOFT|HARD]
+	args := ctx.Args[3:]
+
+	if !StringArrayContains([]string{"SOFT", "HARD"}, args[0]) {
+		return ctx.ReplyBad(fmt.Sprintf("Unknown restart type: `%s`", args[0]))
+	}
+
+	_ = ctx.ReplyAccept()
+	_ = ctx.ReplyRunning()
+
+	req, err := sling.New().Base(config.ConohaApiOrigin).
+		Post(fmt.Sprintf("v2/%s/servers/%s/action", sc.server.TenantID, sc.server.ServerID)).
+		Body(bytes.NewBufferString(fmt.Sprintf("{ \"reboot\": { \"type\": \"%s\" } }", args[0]))).
+		Set("Accept", "application/json").
+		Set("X-Auth-Token", config.ConohaApiToken).
+		Request()
+	if err != nil {
+		ctx.L().Error("failed to create request", zap.Error(err))
+		return ctx.ReplyFailure("An internal error has occurred")
+	}
+
+	ctx.L().Info(fmt.Sprintf("post request to %s starts", req.URL.String()))
+	resp, err := http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+
+	ctx.L().Info("post request ends")
+	if err != nil {
+		ctx.L().Error("failed to post request", zap.Error(err))
+		return ctx.ReplyFailure(fmt.Sprintf(":x: An error has occurred while executing command. %s", cite(ctx.P.Message.ID)))
+	}
+
+	ctx.L().Info(fmt.Sprintf("status code: %s", resp.Status))
+	if resp.StatusCode == http.StatusAccepted {
+		return ctx.ReplySuccess(fmt.Sprintf(":white_check_mark: Command execution was successful. %s", cite(ctx.P.Message.ID)))
+	}
+	return ctx.ReplyFailure(fmt.Sprintf(":x: Incorrect status code was received from ConoHa API.\nstatus code: `%s` %s", resp.Status, cite(ctx.P.Message.ID)))
 }
 
 func (s *Server) GetOperators() []string {
