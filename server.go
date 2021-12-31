@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"github.com/dghubble/sling"
 	"go.uber.org/zap"
+	"io/ioutil"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -166,11 +169,48 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 	}
 	defer resp.Body.Close()
 
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		ctx.L().Error("failed to read resp.Body", zap.Error(err))
+		return ctx.ReplyFailure("An internal error has occurred")
+	}
+
+	logFile, err := sc.openLogFile(ctx)
+	if err != nil {
+		ctx.L().Error("failed to open log file", zap.Error(err))
+		return ctx.ReplyFailure("An internal error has occurred")
+	}
+	defer logFile.Close()
+
+	_, err = logFile.WriteString(fmt.Sprintf("Request\n- URL: %s\n- RestartType: %s\nResponse\n- Header: %+v\n- Body: %s\n- Status: %s (Expect: 202)\n", req.URL.String(), args[0], resp.Header, string(respBody), resp.Status))
+	if err != nil {
+		ctx.L().Error("failed to write log file", zap.Error(err))
+		return ctx.ReplyFailure("An internal error has occurred")
+	}
+
 	ctx.L().Info(fmt.Sprintf("status code: %s", resp.Status))
 	if resp.StatusCode == http.StatusAccepted {
-		return ctx.ReplySuccess(fmt.Sprintf(":white_check_mark: Command execution was successful. %s", cite(ctx.P.Message.ID)))
+		return ctx.ReplySuccess(fmt.Sprintf(":white_check_mark: Command execution was successful.\nPlease check the execution log. `exec-log %s %s %d` %s", sc.server.Name, "restart", ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
 	}
-	return ctx.ReplyFailure(fmt.Sprintf(":x: Incorrect status code was received from ConoHa API.\nstatus code: `%s` %s", resp.Status, cite(ctx.P.Message.ID)))
+	return ctx.ReplyFailure(fmt.Sprintf(":x: Incorrect status code was received from ConoHa API. Status code: `%s`\nPlease check the execution log. `exec-log %s %s %d` %s", resp.Status, sc.server.Name, "restart", ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
+}
+
+func (sc *ServerRestartCommand) openLogFile(ctx *Context) (*os.File, error) {
+	logFilePath := filepath.Join(config.LogsDir, sc.getLogFileName(ctx))
+	logFile, err := os.OpenFile(logFilePath, os.O_RDWR|os.O_CREATE, 0600)
+	if err != nil {
+		ctx.L().Error("failed to open log file", zap.String("path", logFilePath), zap.Error(err))
+		return nil, err
+	}
+	return logFile, nil
+}
+
+func (sc *ServerRestartCommand) getLogFileName(ctx *Context) string {
+	return sc.getLogFileNameByUnixTime(ctx.P.EventTime.Unix())
+}
+
+func (sc *ServerRestartCommand) getLogFileNameByUnixTime(unix int64) string {
+	return fmt.Sprintf("exec-%s-%s-%d", sc.server.Name, "restart", unix)
 }
 
 func (s *Server) GetOperators() []string {
