@@ -19,11 +19,12 @@ func (ss *Servers) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 	*ss = tmp
-	for name := range *ss {
+	for name, s := range *ss {
 		// helpは予約済み
 		if name == "help" {
 			return errors.New("`help` cannot be used as server name")
 		}
+		s.Name = name
 	}
 	return nil
 }
