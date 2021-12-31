@@ -161,13 +161,13 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 
 	ctx.L().Info(fmt.Sprintf("post request to %s starts", req.URL.String()))
 	resp, err := http.DefaultClient.Do(req)
-	defer resp.Body.Close()
 
 	ctx.L().Info("post request ends")
 	if err != nil {
 		ctx.L().Error("failed to post request", zap.Error(err))
 		return ctx.ReplyFailure(fmt.Sprintf(":x: An error has occurred while executing command. %s", cite(ctx.P.Message.ID)))
 	}
+	defer resp.Body.Close()
 
 	ctx.L().Info(fmt.Sprintf("status code: %s", resp.Status))
 	if resp.StatusCode == http.StatusAccepted {
