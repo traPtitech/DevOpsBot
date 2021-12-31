@@ -35,8 +35,8 @@ func main() {
 		logger.Fatal("failed to load config", zap.Error(err))
 	}
 	commands["service"] = config.Services
-	commands["exec-log"] = &ExecLogCommand{}
 	commands["server"] = config.Servers
+	commands["exec-log"] = &ExecLogCommand{}
 	commands["version"] = &VersionCommand{}
 
 	// traQクライアント初期化

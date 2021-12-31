@@ -9,12 +9,12 @@ import (
 	"strconv"
 )
 
-// ExecLogCommand `exec-log [service] [command] [unix]`
+// ExecLogCommand `exec-log [service|server] [command] [unix]`
 type ExecLogCommand struct {
 }
 
 func (ec *ExecLogCommand) Execute(ctx *Context) error {
-	// ctx.Args = exec-log [service] [command] [unix]
+	// ctx.Args = exec-log [service|server] [command] [unix]
 	if len(ctx.Args) != 4 {
 		return ctx.ReplyBad("Invalid Arguments")
 	}
@@ -23,23 +23,39 @@ func (ec *ExecLogCommand) Execute(ctx *Context) error {
 		return ctx.ReplyBad("Invalid Arguments")
 	}
 
-	s, ok := config.Services[ctx.Args[1]]
-	if !ok {
-		// サービスが見つからない
+	var logName string
+
+	if service, ok := config.Services[ctx.Args[1]]; ok {
+		c, ok := service.Commands[ctx.Args[2]]
+		if !ok {
+			// コマンドが見つからない
+			return ctx.ReplyBad(fmt.Sprintf("Unknown command: `%s`", ctx.Args[2]))
+		}
+
+		// オペレーター確認
+		if !c.CheckOperator(ctx.GetExecutor()) {
+			return ctx.ReplyForbid()
+		}
+
+		logName = c.getLogFileNameByUnixTime(unix)
+	} else if server, ok := config.Servers[ctx.Args[1]]; ok {
+		c, ok := server.Commands[ctx.Args[2]]
+		if !ok {
+			// コマンドが見つからない
+			return ctx.ReplyBad(fmt.Sprintf("Unknown command: `%s`", ctx.Args[2]))
+		}
+
+		// オペレーター確認
+		if !server.CheckOperator(ctx.GetExecutor()) {
+			return ctx.ReplyForbid()
+		}
+
+		logName = c.getLogFileNameByUnixTime(unix)
+	} else {
+		// サービスまたはサーバーが見つからない
 		return ctx.ReplyBad(fmt.Sprintf("Unknown service: `%s`", ctx.Args[1]))
 	}
-	c, ok := s.Commands[ctx.Args[2]]
-	if !ok {
-		// コマンドが見つからない
-		return ctx.ReplyBad(fmt.Sprintf("Unknown command: `%s`", ctx.Args[2]))
-	}
 
-	// オペレーター確認
-	if !c.CheckOperator(ctx.GetExecutor()) {
-		return ctx.ReplyForbid()
-	}
-
-	logName := c.getLogFileNameByUnixTime(unix)
 	logFilePath := filepath.Join(config.LogsDir, logName)
 
 	if !fileExists(logFilePath) {

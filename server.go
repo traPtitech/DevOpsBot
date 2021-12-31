@@ -124,6 +124,7 @@ func (s *Server) MakeHelpMessage() string {
 
 type ServerCommand interface {
 	Execute(ctx *Context) error
+	getLogFileNameByUnixTime(unix int64) string
 }
 
 type ServerRestartCommand struct {
