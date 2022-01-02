@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/dghubble/sling"
@@ -149,11 +150,18 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 	_ = ctx.ReplyAccept()
 	_ = ctx.ReplyRunning()
 
-	req, err := sling.New().Base(config.ConohaApiOrigin).
-		Post(fmt.Sprintf("v2/%s/servers/%s/action", config.TenantID, sc.server.ServerID)).
+	token, err := getConohaAPIToken()
+	if err != nil {
+		ctx.L().Error("failed to get ConoHa API token", zap.Error(err))
+		return ctx.ReplyFailure(":x: An error has occurred while getting ConoHa API token. Please retry after a while. %s", cite(ctx.P.Message.ID))
+	}
+
+	req, err := sling.New().
+		Base(config.ConohaComputeApiOrigin).
+		Post(fmt.Sprintf("v2/%s/servers/%s/action", config.ConohaTenantID, sc.server.ServerID)).
 		BodyJSON(Map{"reboot": Map{"type": args[0]}}).
 		Set("Content-Type", "application/json").
-		Set("X-Auth-Token", config.ConohaApiToken).
+		Set("X-Auth-Token", token).
 		Request()
 	if err != nil {
 		ctx.L().Error("failed to create restart request", zap.String("URL", req.URL.String()), zap.Error(err))
@@ -166,7 +174,7 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 	ctx.L().Info("post restart request ends")
 	if err != nil {
 		ctx.L().Error("failed to post restart request", zap.Error(err))
-		return ctx.ReplyFailure(fmt.Sprintf(":x: An Network error has occurred while posing restart request to ConoHa API. Please retry after a while. %s", cite(ctx.P.Message.ID)))
+		return ctx.ReplyFailure(fmt.Sprintf(":x: A network error has occurred while posing restart request to ConoHa API. Please retry after a while. %s", cite(ctx.P.Message.ID)))
 	}
 	defer resp.Body.Close()
 
@@ -183,7 +191,7 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 	}
 	defer logFile.Close()
 
-	_, err = logFile.WriteString(fmt.Sprintf("Request\n- URL: %s\n- RestartType: %s\nResponse\n- Header: %+v\n- Body: %s\n- Status: %s (Expect: 202)\n", req.URL.String(), args[0], resp.Header, string(respBody), resp.Status))
+	_, err = logFile.WriteString(fmt.Sprintf("Request\n- URL: %s\n- RestartType: %s\nResponse\n- Header: %+v\n- Body: %s\n- Status: %s (Expected: 202)\n", req.URL.String(), args[0], resp.Header, string(respBody), resp.Status))
 	if err != nil {
 		ctx.L().Error("failed to write log file", zap.Error(err))
 		return ctx.ReplyFailure("An internal error has occurred")
@@ -221,4 +229,49 @@ func (s *Server) GetOperators() []string {
 // CheckOperator nameユーザーがこのコマンドを実行可能かどうか
 func (s *Server) CheckOperator(name string) bool {
 	return StringArrayContains(s.GetOperators(), name)
+}
+
+func getConohaAPIToken() (string, error) {
+	requestJson := Map{
+		"auth": Map{
+			"passwordCredentials": Map{
+				"username": config.ConohaApiUsername,
+				"password": config.ConohaApiPassword,
+			},
+		},
+		"tenantId": config.ConohaTenantID,
+	}
+
+	req, err := sling.New().
+		Base(config.ConohaIdentityApiOrigin).
+		Post("v2.0/tokens").
+		BodyJSON(requestJson).
+		Set("Content-Type", "application/json").
+		Request()
+	if err != nil {
+		return "", fmt.Errorf("failed to create authentication request: %w", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to post authentication request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("invalid status code: %s (expected: 200)", resp.Status)
+	}
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	var responseMap Map
+	err = json.Unmarshal(respBody, &responseMap)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse response body: %w", err)
+	}
+
+	return responseMap["access"].(Map)["token"].(Map)["id"].(string), nil
 }
