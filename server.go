@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/dghubble/sling"
 	"go.uber.org/zap"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -166,13 +166,13 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 	ctx.L().Info("post restart request ends")
 	if err != nil {
 		ctx.L().Error("failed to post restart request", zap.Error(err))
-		return ctx.ReplyFailure(fmt.Sprintf(":x: An error has occurred while executing command. %s", cite(ctx.P.Message.ID)))
+		return ctx.ReplyFailure(fmt.Sprintf(":x: An Network error has occurred while posing restart request to ConoHa API. Please retry after a while. %s", cite(ctx.P.Message.ID)))
 	}
 	defer resp.Body.Close()
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		ctx.L().Error("failed to read resp.Body", zap.Error(err))
+		ctx.L().Error("failed to read response body", zap.Error(err))
 		return ctx.ReplyFailure("An internal error has occurred")
 	}
 
