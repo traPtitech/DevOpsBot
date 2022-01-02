@@ -264,9 +264,9 @@ func (sc *ServiceCommand) Execute(ctx *Context) error {
 
 	if !sc.PrintOutputOnMessage {
 		if success {
-			return ctx.ReplySuccess(fmt.Sprintf(":white_check_mark: Command execution was successful. \n log: `exec-log %s %s %d` %s", sc.service.Name, sc.Name, ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
+			return ctx.ReplySuccess(fmt.Sprintf(":white_check_mark: Command execution was successful. \n log: `exec-log service %s %s %d` %s", sc.service.Name, sc.Name, ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
 		}
-		return ctx.ReplyFailure(fmt.Sprintf(":x: An error has occurred while executing command. \nPlease check the execution log. `exec-log %s %s %d` %s", sc.service.Name, sc.Name, ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
+		return ctx.ReplyFailure(fmt.Sprintf(":x: An error has occurred while executing command. \nPlease check the execution log. `exec-log service %s %s %d` %s", sc.service.Name, sc.Name, ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
 	}
 
 	logFile, err := sc.openLogFile(ctx)

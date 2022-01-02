@@ -9,27 +9,34 @@ import (
 	"strconv"
 )
 
-// ExecLogCommand `exec-log [service|server] [command] [unix]`
+// ExecLogCommand `exec-log [service|server] [name] [command] [unix]`
 type ExecLogCommand struct {
 }
 
 func (ec *ExecLogCommand) Execute(ctx *Context) error {
-	// ctx.Args = exec-log [service|server] [command] [unix]
-	if len(ctx.Args) != 4 {
+	// ctx.Args = exec-log [service|server] [name] [command] [unix]
+	if len(ctx.Args) != 5 {
 		return ctx.ReplyBad("Invalid Arguments")
 	}
-	unix, err := strconv.ParseInt(ctx.Args[3], 10, 64)
+	args := ctx.Args[1:]
+	unix, err := strconv.ParseInt(args[3], 10, 64)
 	if err != nil {
 		return ctx.ReplyBad("Invalid Arguments")
 	}
 
 	var logName string
 
-	if service, ok := config.Services[ctx.Args[1]]; ok {
-		c, ok := service.Commands[ctx.Args[2]]
+	switch args[0] {
+	case "service":
+		s, ok := config.Services[args[1]]
+		if !ok {
+			// サービスが見つからない
+			return ctx.ReplyBad(fmt.Sprintf("Unknown service: `%s`", args[1]))
+		}
+		c, ok := s.Commands[args[2]]
 		if !ok {
 			// コマンドが見つからない
-			return ctx.ReplyBad(fmt.Sprintf("Unknown command: `%s`", ctx.Args[2]))
+			return ctx.ReplyBad(fmt.Sprintf("Unknown command: `%s`", args[2]))
 		}
 
 		// オペレーター確認
@@ -38,22 +45,26 @@ func (ec *ExecLogCommand) Execute(ctx *Context) error {
 		}
 
 		logName = c.getLogFileNameByUnixTime(unix)
-	} else if server, ok := config.Servers[ctx.Args[1]]; ok {
-		c, ok := server.Commands[ctx.Args[2]]
+	case "server":
+		s, ok := config.Servers[args[1]]
+		if !ok {
+			// サーバーが見つからない
+			return ctx.ReplyBad(fmt.Sprintf("Unknown server: `%s`", args[1]))
+		}
+		c, ok := s.Commands[args[2]]
 		if !ok {
 			// コマンドが見つからない
-			return ctx.ReplyBad(fmt.Sprintf("Unknown command: `%s`", ctx.Args[2]))
+			return ctx.ReplyBad(fmt.Sprintf("Unknown command: `%s`", args[2]))
 		}
 
 		// オペレーター確認
-		if !server.CheckOperator(ctx.GetExecutor()) {
+		if !s.CheckOperator(ctx.GetExecutor()) {
 			return ctx.ReplyForbid()
 		}
 
 		logName = c.getLogFileNameByUnixTime(unix)
-	} else {
-		// サービスまたはサーバーが見つからない
-		return ctx.ReplyBad(fmt.Sprintf("Unknown service: `%s`", ctx.Args[1]))
+	default:
+		return ctx.ReplyBad("Invalid Arguments")
 	}
 
 	logFilePath := filepath.Join(config.LogsDir, logName)

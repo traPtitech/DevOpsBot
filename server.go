@@ -191,9 +191,9 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 
 	ctx.L().Info(fmt.Sprintf("status code: %s", resp.Status))
 	if resp.StatusCode == http.StatusAccepted {
-		return ctx.ReplySuccess(fmt.Sprintf(":white_check_mark: Command execution was successful.\nPlease check the execution log. `exec-log %s %s %d` %s", sc.server.Name, "restart", ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
+		return ctx.ReplySuccess(fmt.Sprintf(":white_check_mark: Command execution was successful.\nlog: `exec-log server %s %s %d` %s", sc.server.Name, "restart", ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
 	}
-	return ctx.ReplyFailure(fmt.Sprintf(":x: Incorrect status code was received from ConoHa API. Status code: `%s`\nPlease check the execution log. `exec-log %s %s %d` %s", resp.Status, sc.server.Name, "restart", ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
+	return ctx.ReplyFailure(fmt.Sprintf(":x: Incorrect status code was received from ConoHa API. Status code: `%s`\nPlease check the execution log. `exec-log server %s %s %d` %s", resp.Status, sc.server.Name, "restart", ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
 }
 
 func (sc *ServerRestartCommand) openLogFile(ctx *Context) (*os.File, error) {
