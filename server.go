@@ -232,14 +232,24 @@ func (s *Server) CheckOperator(name string) bool {
 }
 
 func getConohaAPIToken() (string, error) {
-	requestJson := Map{
-		"auth": Map{
-			"passwordCredentials": Map{
-				"username": config.ConohaApiUsername,
-				"password": config.ConohaApiPassword,
+	type PasswordCredentials struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	type Auth struct {
+		PasswordCredentials PasswordCredentials `json:"passwordCredentials"`
+		TenantId            string              `json:"tenantId"`
+	}
+	requestJson := struct {
+		Auth Auth `json:"auth"`
+	}{
+		Auth: Auth{
+			PasswordCredentials: PasswordCredentials{
+				Username: config.ConohaApiUsername,
+				Password: config.ConohaApiPassword,
 			},
+			TenantId: config.ConohaTenantID,
 		},
-		"tenantId": config.ConohaTenantID,
 	}
 
 	req, err := sling.New().
@@ -267,11 +277,17 @@ func getConohaAPIToken() (string, error) {
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	var responseMap Map
-	err = json.Unmarshal(respBody, &responseMap)
+	var responseJson struct {
+		Access struct {
+			Token struct {
+				Id string `json:"id"`
+			} `json:"token"`
+		} `json:"access"`
+	}
+	err = json.Unmarshal(respBody, &responseJson)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse response body: %w", err)
+		return "", fmt.Errorf("failed to unmarshal response body: %w", err)
 	}
 
-	return responseMap["access"].(Map)["token"].(Map)["id"].(string), nil
+	return responseJson.Access.Token.Id, nil
 }
