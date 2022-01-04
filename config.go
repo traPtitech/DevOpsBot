@@ -6,18 +6,24 @@ import (
 )
 
 type Config struct {
-	BindAddr          string   `yaml:"bindAddr"`
-	TraqOrigin        string   `yaml:"traqOrigin"`
-	DevOpsBotOrigin   string   `yaml:"devOpsBotOrigin"`
-	DevOpsChannelID   string   `yaml:"devOpsChannelId"`
-	VerificationToken string   `yaml:"verificationToken"`
-	BotAccessToken    string   `yaml:"botAccessToken"`
-	LocalHostName     string   `yaml:"localhostName"`
-	DefaultSSHUser    string   `yaml:"defaultSSHUser"`
-	SSHPrivateKey     string   `yaml:"sshPrivateKey"`
-	LogsDir           string   `yaml:"logsDir"`
-	Stamps            Stamps   `yaml:"stamps"`
-	Services          Services `yaml:"services"`
+	BindAddr                string   `yaml:"bindAddr"`
+	TraqOrigin              string   `yaml:"traqOrigin"`
+	DevOpsBotOrigin         string   `yaml:"devOpsBotOrigin"`
+	DevOpsChannelID         string   `yaml:"devOpsChannelId"`
+	VerificationToken       string   `yaml:"verificationToken"`
+	BotAccessToken          string   `yaml:"botAccessToken"`
+	ConohaIdentityApiOrigin string   `yaml:"conohaIdentityApiOrigin"`
+	ConohaComputeApiOrigin  string   `yaml:"conohaComputeApiOrigin"`
+	ConohaApiUsername       string   `yaml:"conohaApiUsername"`
+	ConohaApiPassword       string   `yaml:"conohaApiPassword"`
+	ConohaTenantID          string   `yaml:"conohaTenantId"`
+	LocalHostName           string   `yaml:"localhostName"`
+	DefaultSSHUser          string   `yaml:"defaultSSHUser"`
+	SSHPrivateKey           string   `yaml:"sshPrivateKey"`
+	LogsDir                 string   `yaml:"logsDir"`
+	Stamps                  Stamps   `yaml:"stamps"`
+	Services                Services `yaml:"services"`
+	Servers                 Servers  `yaml:"servers"`
 }
 
 type Stamps struct {

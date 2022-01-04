@@ -9,37 +9,64 @@ import (
 	"strconv"
 )
 
-// ExecLogCommand `exec-log [service] [command] [unix]`
+// ExecLogCommand `exec-log [service|server] [name] [command] [unix]`
 type ExecLogCommand struct {
 }
 
 func (ec *ExecLogCommand) Execute(ctx *Context) error {
-	// ctx.Args = exec-log [service] [command] [unix]
-	if len(ctx.Args) != 4 {
+	// ctx.Args = exec-log [service|server] [name] [command] [unix]
+	if len(ctx.Args) != 5 {
 		return ctx.ReplyBad("Invalid Arguments")
 	}
-	unix, err := strconv.ParseInt(ctx.Args[3], 10, 64)
+	args := ctx.Args[1:]
+	unix, err := strconv.ParseInt(args[3], 10, 64)
 	if err != nil {
 		return ctx.ReplyBad("Invalid Arguments")
 	}
 
-	s, ok := config.Services[ctx.Args[1]]
-	if !ok {
-		// サービスが見つからない
-		return ctx.ReplyBad(fmt.Sprintf("Unknown service: `%s`", ctx.Args[1]))
-	}
-	c, ok := s.Commands[ctx.Args[2]]
-	if !ok {
-		// コマンドが見つからない
-		return ctx.ReplyBad(fmt.Sprintf("Unknown command: `%s`", ctx.Args[2]))
+	var logName string
+
+	switch args[0] {
+	case "service":
+		s, ok := config.Services[args[1]]
+		if !ok {
+			// サービスが見つからない
+			return ctx.ReplyBad(fmt.Sprintf("Unknown service: `%s`", args[1]))
+		}
+		c, ok := s.Commands[args[2]]
+		if !ok {
+			// コマンドが見つからない
+			return ctx.ReplyBad(fmt.Sprintf("Unknown command: `%s`", args[2]))
+		}
+
+		// オペレーター確認
+		if !c.CheckOperator(ctx.GetExecutor()) {
+			return ctx.ReplyForbid()
+		}
+
+		logName = c.getLogFileNameByUnixTime(unix)
+	case "server":
+		s, ok := config.Servers[args[1]]
+		if !ok {
+			// サーバーが見つからない
+			return ctx.ReplyBad(fmt.Sprintf("Unknown server: `%s`", args[1]))
+		}
+		c, ok := s.Commands[args[2]]
+		if !ok {
+			// コマンドが見つからない
+			return ctx.ReplyBad(fmt.Sprintf("Unknown command: `%s`", args[2]))
+		}
+
+		// オペレーター確認
+		if !s.CheckOperator(ctx.GetExecutor()) {
+			return ctx.ReplyForbid()
+		}
+
+		logName = c.getLogFileNameByUnixTime(unix)
+	default:
+		return ctx.ReplyBad("Invalid Arguments")
 	}
 
-	// オペレーター確認
-	if !c.CheckOperator(ctx.GetExecutor()) {
-		return ctx.ReplyForbid()
-	}
-
-	logName := c.getLogFileNameByUnixTime(unix)
 	logFilePath := filepath.Join(config.LogsDir, logName)
 
 	if !fileExists(logFilePath) {
