@@ -232,19 +232,19 @@ func (s *Server) CheckOperator(name string) bool {
 }
 
 func getConohaAPIToken() (string, error) {
-	type PasswordCredentials struct {
+	type passwordCredentials struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}
-	type Auth struct {
-		PasswordCredentials PasswordCredentials `json:"passwordCredentials"`
+	type auth struct {
+		PasswordCredentials passwordCredentials `json:"passwordCredentials"`
 		TenantId            string              `json:"tenantId"`
 	}
 	requestJson := struct {
-		Auth Auth `json:"auth"`
+		Auth auth `json:"auth"`
 	}{
-		Auth: Auth{
-			PasswordCredentials: PasswordCredentials{
+		Auth: auth{
+			PasswordCredentials: passwordCredentials{
 				Username: config.ConohaApiUsername,
 				Password: config.ConohaApiPassword,
 			},
