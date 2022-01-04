@@ -154,7 +154,7 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 	token, err := getConohaAPIToken()
 	if err != nil {
 		ctx.L().Error("failed to get ConoHa API token", zap.Error(err))
-		return ctx.ReplyFailure(":x: An error has occurred while getting ConoHa API token. Please retry after a while. %s", cite(ctx.P.Message.ID))
+		return ctx.ReplyFailure(fmt.Sprintf(":x: An error has occurred while getting ConoHa API token. Please retry after a while. %s", cite(ctx.P.Message.ID)))
 	}
 
 	req, err := sling.New().
