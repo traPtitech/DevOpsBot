@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/dghubble/sling"
-	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/dghubble/sling"
+	"go.uber.org/zap"
 )
 
 type Servers map[string]*Server
@@ -160,7 +161,7 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 		Base(config.ConohaComputeApiOrigin).
 		Post(fmt.Sprintf("v2/%s/servers/%s/action", config.ConohaTenantID, sc.server.ServerID)).
 		BodyJSON(Map{"reboot": Map{"type": args[0]}}).
-		Set("Content-Type", "application/json").
+		Set("Accept", "application/json").
 		Set("X-Auth-Token", token).
 		Request()
 	if err != nil {
@@ -256,7 +257,7 @@ func getConohaAPIToken() (string, error) {
 		Base(config.ConohaIdentityApiOrigin).
 		Post("v2.0/tokens").
 		BodyJSON(requestJson).
-		Set("Content-Type", "application/json").
+		Set("Accept", "application/json").
 		Request()
 	if err != nil {
 		return "", fmt.Errorf("failed to create authentication request: %w", err)
