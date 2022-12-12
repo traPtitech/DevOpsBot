@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/dghubble/sling v1.4.0
-	github.com/go-chi/chi/v5 v5.0.7
+	github.com/go-chi/chi/v5 v5.0.8
 	github.com/go-chi/render v1.0.1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/patrickmn/go-cache v2.1.0+incompatible
