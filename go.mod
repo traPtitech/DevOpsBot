@@ -9,7 +9,7 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	go.uber.org/zap v1.19.1
-	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
+	golang.org/x/crypto v0.6.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -17,5 +17,5 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
-	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
+	golang.org/x/sys v0.5.0 // indirect
 )
