@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/patrickmn/go-cache"
-	"net/http"
+	"io"
+	"os"
 	"path/filepath"
 	"strconv"
+
+	"go.uber.org/zap"
 )
 
 // ExecLogCommand `exec-log [service|server] [name] [command] [unix]`
@@ -73,32 +74,17 @@ func (ec *ExecLogCommand) Execute(ctx *Context) error {
 		return ctx.ReplyBad("Log not found")
 	}
 
-	key := RandAlphaNumericString(30)
-	logAccessUrls.Set(key, logName, cache.DefaultExpiration)
+	f, err := os.Open(logFilePath)
+	if err != nil {
+		ctx.L().Error("opening log file", zap.Error(err))
+		return ctx.ReplyFailure("Error opening log file")
+	}
+	b, err := io.ReadAll(f)
+	if err != nil {
+		ctx.L().Error("reading log file", zap.Error(err))
+		return ctx.ReplyFailure("Error reading log file")
+	}
+
 	_ = ctx.ReplyAccept()
-
-	fileURL := fmt.Sprintf("%s/log/%s", config.DevOpsBotOrigin, key)
-	return ctx.ReplyViaDM(fmt.Sprintf("[View](%s) [Download](%s?dl=1)\n\nThese URL is valid for 3 minutes.", fileURL, fileURL))
-}
-
-func GetLog(w http.ResponseWriter, r *http.Request) {
-	key := chi.URLParam(r, "key")
-	if len(key) == 0 {
-		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-		return
-	}
-	shouldDownloadFile := r.URL.Query().Get("dl") == "1"
-
-	logName, ok := logAccessUrls.Get(key)
-	if !ok {
-		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-		return
-	}
-
-	if shouldDownloadFile {
-		w.Header().Set("content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", logName.(string)))
-	}
-
-	http.ServeFile(w, r, filepath.Join(config.LogsDir, logName.(string)))
-	return
+	return ctx.ReplyViaDM("```\n" + safeConvertString(b) + "\n```")
 }

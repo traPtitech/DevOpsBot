@@ -1,16 +1,14 @@
 package main
 
 import (
-	"gopkg.in/yaml.v2"
 	"os"
+
+	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
-	BindAddr                string   `yaml:"bindAddr"`
 	TraqOrigin              string   `yaml:"traqOrigin"`
-	DevOpsBotOrigin         string   `yaml:"devOpsBotOrigin"`
 	DevOpsChannelID         string   `yaml:"devOpsChannelId"`
-	VerificationToken       string   `yaml:"verificationToken"`
 	BotAccessToken          string   `yaml:"botAccessToken"`
 	ConohaIdentityApiOrigin string   `yaml:"conohaIdentityApiOrigin"`
 	ConohaComputeApiOrigin  string   `yaml:"conohaComputeApiOrigin"`

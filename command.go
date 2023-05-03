@@ -1,6 +1,9 @@
 package main
 
 import (
+	"context"
+
+	"github.com/traPtitech/traq-ws-bot/payload"
 	"go.uber.org/zap"
 )
 
@@ -14,8 +17,9 @@ type Command interface {
 
 // Context コマンド実行コンテキスト
 type Context struct {
+	context.Context
 	// P BOTが受信したMESSAGE_CREATEDイベントの生のペイロード
-	P *MessageCreatedPayload
+	P *payload.MessageCreated
 	// Args 投稿メッセージを空白区切りで分けたもの
 	Args []string
 }
@@ -28,13 +32,13 @@ func (ctx *Context) GetExecutor() string {
 // ReplyViaDM コマンドメッセージに返信します
 func (ctx *Context) Reply(message, stamp string) (err error) {
 	if len(message) > 0 {
-		err = SendTRAQMessage(ctx.P.Message.ChannelID, message)
+		err = SendTRAQMessage(ctx, ctx.P.Message.ChannelID, message)
 		if err != nil {
 			return
 		}
 	}
 	if len(stamp) > 0 {
-		err = PushTRAQStamp(ctx.P.Message.ID, stamp)
+		err = PushTRAQStamp(ctx, ctx.P.Message.ID, stamp)
 		if err != nil {
 			return
 		}
@@ -44,7 +48,7 @@ func (ctx *Context) Reply(message, stamp string) (err error) {
 
 // ReplyViaDM コマンド実行者にDMで返信します
 func (ctx *Context) ReplyViaDM(message string) error {
-	return SendTRAQDirectMessage(ctx.P.Message.User.ID, message)
+	return SendTRAQDirectMessage(ctx, ctx.P.Message.User.ID, message)
 }
 
 // ReplyBad コマンドメッセージにBadスタンプをつけて返信します
