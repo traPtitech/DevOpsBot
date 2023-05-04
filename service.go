@@ -40,14 +40,14 @@ func (sc *ServicesConfig) Compile() (Services, error) {
 // Execute Commandインターフェース実装
 func (ss Services) Execute(ctx *Context) error {
 	if len(ctx.Args) < 2 {
-		return ctx.ReplyBad("Invalid Arguments")
+		return ctx.Reply(ss.MakeHelpMessage()...)
 	}
 	// ctx.Args = service [name] [command]
 	args := ctx.Args[1:]
 
 	if args[0] == "help" {
 		// サービス一覧表示
-		return ctx.Reply(ss.MakeHelpMessage())
+		return ctx.Reply(ss.MakeHelpMessage()...)
 	}
 
 	s, ok := ss[args[0]]
@@ -59,20 +59,16 @@ func (ss Services) Execute(ctx *Context) error {
 }
 
 // MakeHelpMessage service help用のメッセージを作成
-func (ss Services) MakeHelpMessage() string {
-	var sb strings.Builder
-	sb.WriteString("## service\n")
-	sb.WriteString("### usage:\n")
-	sb.WriteString(fmt.Sprintf("`%sservice [service_name] [command]`\n", config.Prefix))
-	sb.WriteString("### services:\n")
-	for name, s := range ss {
-		if len(s.Description) > 0 {
-			sb.WriteString(fmt.Sprintf("+ `%s` - %s\n", name, s.Description))
-		} else {
-			sb.WriteString(fmt.Sprintf("+ `%s`\n", name))
+func (ss Services) MakeHelpMessage() []string {
+	var lines []string
+	lines = append(lines, "# service")
+	lines = append(lines, fmt.Sprintf("`%sservice [service_name]` for more help", config.Prefix))
+	for _, s := range ss {
+		for _, sub := range s.Commands {
+			lines = append(lines, fmt.Sprintf("+ %sservice %s %s", config.Prefix, s.Name, sub.Name))
 		}
 	}
-	return sb.String()
+	return lines
 }
 
 // Service サービス
@@ -100,14 +96,14 @@ type Service struct {
 // Execute Commandインターフェース実装
 func (s *Service) Execute(ctx *Context) error {
 	if len(ctx.Args) < 3 {
-		return ctx.ReplyBad("Invalid Arguments")
+		return ctx.Reply(s.MakeHelpMessage()...)
 	}
 	// ctx.Args = service [name] [command]
 	args := ctx.Args[2:]
 
 	if args[0] == "help" {
 		// サービスヘルプを表示
-		return ctx.Reply(s.MakeHelpMessage())
+		return ctx.Reply(s.MakeHelpMessage()...)
 	}
 
 	c, ok := s.Commands[args[0]]
@@ -119,26 +115,17 @@ func (s *Service) Execute(ctx *Context) error {
 }
 
 // MakeHelpMessage service [name] help用のメッセージを作成
-func (s *Service) MakeHelpMessage() string {
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("## service: %s\n", s.Name))
-	sb.WriteString("### usage:\n")
-	sb.WriteString(fmt.Sprintf("`%sservice %s [command]`\n", config.Prefix, s.Name))
-	sb.WriteString("### commands:\n")
+func (s *Service) MakeHelpMessage() []string {
+	var lines []string
+	lines = append(lines, fmt.Sprintf("# service %s", s.Name))
 	for name, c := range s.Commands {
-		sb.WriteString(fmt.Sprintf("+ `%s`\n", name))
-
+		lines = append(lines, fmt.Sprintf("+ %sservice %s %s", config.Prefix, s.Name, name))
 		if len(s.Description) > 0 {
-			sb.WriteString(fmt.Sprintf("  + %s\n", s.Description))
+			lines = append(lines, fmt.Sprintf("  + %s", s.Description))
 		}
-
-		var quotedUsers []string
-		for _, u := range c.GetOperators() {
-			quotedUsers = append(quotedUsers, fmt.Sprintf("`%s`", u))
-		}
-		sb.WriteString(fmt.Sprintf("  + available users: %s\n", strings.Join(quotedUsers, ",")))
+		lines = append(lines, fmt.Sprintf("  + available users: %s", strings.Join(c.GetOperators(), ",")))
 	}
-	return sb.String()
+	return lines
 }
 
 // ServiceCommand サービスコマンド

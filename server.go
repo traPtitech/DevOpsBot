@@ -35,14 +35,14 @@ func (sc *ServersConfig) Compile() (Servers, error) {
 // Execute Commandインターフェース実装
 func (ss Servers) Execute(ctx *Context) error {
 	if len(ctx.Args) < 2 {
-		return ctx.ReplyBad("Invalid Arguments")
+		return ctx.Reply(ss.MakeHelpMessage()...)
 	}
 	// ctx.Args = server [server_name] restart [SOFT|HARD]
 	args := ctx.Args[1:]
 
 	if args[0] == "help" {
 		// サーバー一覧表示
-		return ctx.Reply(ss.MakeHelpMessage())
+		return ctx.Reply(ss.MakeHelpMessage()...)
 	}
 
 	s, ok := ss[args[0]]
@@ -54,20 +54,20 @@ func (ss Servers) Execute(ctx *Context) error {
 }
 
 // MakeHelpMessage server help用のメッセージを作成
-func (ss Servers) MakeHelpMessage() string {
-	var sb strings.Builder
-	sb.WriteString("## server\n")
-	sb.WriteString("### usage:\n")
-	sb.WriteString(fmt.Sprintf("`%sserver [server_name] restart [SOFT|HARD]`\n", config.Prefix))
-	sb.WriteString("### servers:\n")
+func (ss Servers) MakeHelpMessage() []string {
+	var lines []string
+	lines = append(lines, "# server")
 	for name, s := range ss {
 		if len(s.Description) > 0 {
-			sb.WriteString(fmt.Sprintf("+ `%s` - %s\n", name, s.Description))
+			lines = append(lines, fmt.Sprintf("+ `%s` - %s", name, s.Description))
 		} else {
-			sb.WriteString(fmt.Sprintf("+ `%s`\n", name))
+			lines = append(lines, fmt.Sprintf("+ `%s`", name))
 		}
+
+		// restart cmd
+		lines = append(lines, fmt.Sprintf("  + %sserver %s restart [SOFT|HARD]", config.Prefix, name))
 	}
-	return sb.String()
+	return lines
 }
 
 // Server サーバー
@@ -94,7 +94,7 @@ func (s *Server) Execute(ctx *Context) error {
 	args := ctx.Args[2:]
 
 	if args[0] == "help" {
-		return ctx.Reply(s.MakeHelpMessage())
+		return ctx.Reply(s.MakeHelpMessage()...)
 	}
 
 	c, ok := s.Commands[args[0]]
@@ -106,18 +106,14 @@ func (s *Server) Execute(ctx *Context) error {
 }
 
 // MakeHelpMessage server [name] help用のメッセージを作成
-func (s *Server) MakeHelpMessage() string {
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("## server: %s\n", s.Name))
-	sb.WriteString("### usage:\n")
-	sb.WriteString(fmt.Sprintf("`%sserver %s restart [SOFT|HARD]`\n", config.Prefix, s.Name))
-	sb.WriteString("### operators:\n")
-	var quotedUsers []string
-	for _, u := range s.GetOperators() {
-		quotedUsers = append(quotedUsers, fmt.Sprintf("`%s`", u))
-	}
-	sb.WriteString(strings.Join(quotedUsers, ","))
-	return sb.String()
+func (s *Server) MakeHelpMessage() []string {
+	var lines []string
+	lines = append(lines, fmt.Sprintf("## server: %s", s.Name))
+	lines = append(lines, "### usage:")
+	lines = append(lines, fmt.Sprintf("`%sserver %s restart [SOFT|HARD]`", config.Prefix, s.Name))
+	lines = append(lines, "### operators:")
+	lines = append(lines, strings.Join(s.GetOperators(), ", "))
+	return lines
 }
 
 type ServerCommand interface {
