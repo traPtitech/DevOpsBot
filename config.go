@@ -25,9 +25,8 @@ type Stamps struct {
 }
 
 type CommandsConfig struct {
-	Deploy   DeployConfig   `yaml:"deploy"`
-	Services ServicesConfig `yaml:"services"`
-	Servers  ServersConfig  `yaml:"servers"`
+	Deploy  DeployConfig  `yaml:"deploy"`
+	Servers ServersConfig `yaml:"servers"`
 }
 
 type DeployConfig struct {
@@ -46,14 +45,6 @@ type DeployCommandConfig struct {
 	TemplateRef string   `yaml:"templateRef"`
 	ArgsPrefix  []string `yaml:"argsPrefix"`
 	Operators   []string `yaml:"operators"`
-}
-
-type ServicesConfig struct {
-	LogsDir        string     `yaml:"logsDir"`
-	LocalHostName  string     `yaml:"localhostName"`
-	DefaultSSHUser string     `yaml:"defaultSSHUser"`
-	SSHPrivateKey  string     `yaml:"sshPrivateKey"`
-	Services       []*Service `yaml:"services"`
 }
 
 type ServersConfig struct {

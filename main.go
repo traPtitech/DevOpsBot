@@ -40,19 +40,13 @@ func main() {
 	}
 	commands["deploy"] = deployCmd
 
-	svcCmd, err := config.Commands.Services.Compile()
-	if err != nil {
-		logger.Fatal("invalid services config", zap.Error(err))
-	}
-	commands["service"] = svcCmd
-
 	svrCmd, err := config.Commands.Servers.Compile()
 	if err != nil {
 		logger.Fatal("invalid servers config", zap.Error(err))
 	}
 	commands["server"] = svrCmd
 
-	commands["exec-log"] = &ExecLogCommand{svc: svcCmd, svr: svrCmd}
+	commands["exec-log"] = &ExecLogCommand{svr: svrCmd}
 	commands["version"] = &VersionCommand{}
 
 	bot, err = traqwsbot.NewBot(&traqwsbot.Options{

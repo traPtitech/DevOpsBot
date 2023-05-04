@@ -12,12 +12,11 @@ import (
 
 // ExecLogCommand `exec-log [service|server] [name] [command] [unix]`
 type ExecLogCommand struct {
-	svc Services
-	svr Servers
+	svr *ServersCommand
 }
 
 func (ec *ExecLogCommand) Execute(ctx *Context) error {
-	// ctx.Args = exec-log [service|server] [name] [command] [unix]
+	// ctx.Args = exec-log server [name] [command] [unix]
 	if len(ctx.Args) != 5 {
 		return ctx.ReplyBad("Invalid Arguments")
 	}
@@ -31,27 +30,8 @@ func (ec *ExecLogCommand) Execute(ctx *Context) error {
 	var logsDir string
 
 	switch args[0] {
-	case "service":
-		s, ok := ec.svc[args[1]]
-		if !ok {
-			// サービスが見つからない
-			return ctx.ReplyBad(fmt.Sprintf("Unknown service: `%s`", args[1]))
-		}
-		c, ok := s.Commands[args[2]]
-		if !ok {
-			// コマンドが見つからない
-			return ctx.ReplyBad(fmt.Sprintf("Unknown command: `%s`", args[2]))
-		}
-
-		// オペレーター確認
-		if !c.CheckOperator(ctx.GetExecutor()) {
-			return ctx.ReplyForbid()
-		}
-
-		logsDir = config.Commands.Services.LogsDir
-		logName = c.getLogFileNameByUnixTime(unix)
 	case "server":
-		s, ok := ec.svr[args[1]]
+		s, ok := ec.svr.instances[args[1]]
 		if !ok {
 			// サーバーが見つからない
 			return ctx.ReplyBad(fmt.Sprintf("Unknown server: `%s`", args[1]))
