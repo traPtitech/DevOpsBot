@@ -1,6 +1,8 @@
 *.iml
 /.idea/
-./DevOpsBot
-./log
-./config.yaml
-./dist
+
+/DevOpsBot
+/log
+/config.yaml
+/dist
+/test.sh

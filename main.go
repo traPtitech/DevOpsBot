@@ -10,7 +10,6 @@ import (
 
 var (
 	version = "UNKNOWN"
-	config  *Config
 	logger  *zap.Logger
 	bot     *traqwsbot.Bot
 )
@@ -18,7 +17,7 @@ var (
 func main() {
 	var err error
 
-	// ロガー初期化
+	// Initialize logger
 	logger, err = zap.NewProduction()
 	if err != nil {
 		panic(err)
@@ -27,8 +26,8 @@ func main() {
 
 	logger.Info(fmt.Sprintf("DevOpsBot `v%s` initializing", version))
 
-	// 設定ファイル読み込み
-	config, err = LoadConfig(getEnvOrDefault("CONFIG_FILE", "./config.yml"))
+	// Load config
+	err = LoadConfig()
 	if err != nil {
 		logger.Fatal("failed to load config", zap.Error(err))
 	}
@@ -47,10 +46,11 @@ func main() {
 	commands["server"] = svrCmd
 
 	commands["exec-log"] = &ExecLogCommand{svr: svrCmd}
-	commands["version"] = &VersionCommand{}
+	commands["help"] = &HelpCommand{}
 
+	// Start bot
 	bot, err = traqwsbot.NewBot(&traqwsbot.Options{
-		AccessToken: config.BotAccessToken,
+		AccessToken: config.Token,
 		Origin:      config.TraqOrigin,
 	})
 	if err != nil {
@@ -59,7 +59,6 @@ func main() {
 
 	bot.OnMessageCreated(BotMessageReceived)
 
-	// 起動
 	err = bot.Start()
 	if err != nil {
 		logger.Fatal("starting ws bot", zap.Error(err))

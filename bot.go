@@ -18,7 +18,10 @@ type Map map[string]interface{}
 func BotMessageReceived(p *payload.MessageCreated) {
 	ctx := context.Background()
 
-	if p.Message.ChannelID != config.DevOpsChannelID {
+	if p.Message.User.Bot {
+		return // Ignore bots
+	}
+	if p.Message.ChannelID != config.ChannelID {
 		return // DevOpsチャンネル以外からのメッセージは無視
 	}
 

@@ -5,14 +5,6 @@ import (
 	"strings"
 )
 
-func getEnvOrDefault(env, def string) string {
-	s := os.Getenv(env)
-	if len(s) > 0 {
-		return s
-	}
-	return def
-}
-
 func fileExists(filename string) bool {
 	_, err := os.Stat(filename)
 	return err == nil

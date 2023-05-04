@@ -20,9 +20,10 @@ type ServersCommand struct {
 }
 
 func (sc *ServersConfig) Compile() (*ServersCommand, error) {
-	var cmd ServersCommand
+	cmd := &ServersCommand{
+		instances: make(map[string]*ServerInstance, len(sc.Servers)),
+	}
 
-	cmd.instances = make(map[string]*ServerInstance, len(sc.Servers))
 	for _, sic := range sc.Servers {
 		// helpは予約済み
 		if sic.Name == "help" {
@@ -42,7 +43,7 @@ func (sc *ServersConfig) Compile() (*ServersCommand, error) {
 		s.Commands["restart"] = &ServerRestartCommand{s}
 		cmd.instances[s.Name] = s
 	}
-	return &cmd, nil
+	return cmd, nil
 }
 
 // Execute Commandインターフェース実装
@@ -69,16 +70,17 @@ func (sc *ServersCommand) Execute(ctx *Context) error {
 // MakeHelpMessage server help用のメッセージを作成
 func (sc *ServersCommand) MakeHelpMessage() []string {
 	var lines []string
-	lines = append(lines, "# server")
+	lines = append(lines, "## server commands")
 	for name, s := range sc.instances {
-		if len(s.Description) > 0 {
-			lines = append(lines, fmt.Sprintf("+ `%s` - %s", name, s.Description))
-		} else {
-			lines = append(lines, fmt.Sprintf("+ `%s`", name))
+		lines = append(lines, fmt.Sprintf(
+			"- `%sserver %s restart [SOFT|HARD]`%s",
+			config.Prefix,
+			name,
+			lo.Ternary(s.Description != "", " - "+s.Description, ""),
+		))
+		if len(s.Operators) > 0 {
+			lines = append(lines, fmt.Sprintf("  - operators: %s", strings.Join(s.Operators, ", ")))
 		}
-
-		// restart cmd
-		lines = append(lines, fmt.Sprintf("  + %sserver %s restart [SOFT|HARD]", config.Prefix, name))
 	}
 	return lines
 }
@@ -157,8 +159,8 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 	}
 
 	req, err := sling.New().
-		Base(config.Commands.Servers.ConohaComputeApiOrigin).
-		Post(fmt.Sprintf("v2/%s/servers/%s/action", config.Commands.Servers.ConohaTenantID, sc.server.ServerID)).
+		Base(config.Commands.Servers.Conoha.Origin.Compute).
+		Post(fmt.Sprintf("v2/%s/servers/%s/action", config.Commands.Servers.Conoha.TenantID, sc.server.ServerID)).
 		BodyJSON(Map{"reboot": Map{"type": args[0]}}).
 		Set("Accept", "application/json").
 		Set("X-Auth-Token", token).
@@ -245,15 +247,15 @@ func getConohaAPIToken() (string, error) {
 	}{
 		Auth: auth{
 			PasswordCredentials: passwordCredentials{
-				Username: config.Commands.Servers.ConohaApiUsername,
-				Password: config.Commands.Servers.ConohaApiPassword,
+				Username: config.Commands.Servers.Conoha.Username,
+				Password: config.Commands.Servers.Conoha.Password,
 			},
-			TenantId: config.Commands.Servers.ConohaTenantID,
+			TenantId: config.Commands.Servers.Conoha.TenantID,
 		},
 	}
 
 	req, err := sling.New().
-		Base(config.Commands.Servers.ConohaIdentityApiOrigin).
+		Base(config.Commands.Servers.Conoha.Origin.Identity).
 		Post("v2.0/tokens").
 		BodyJSON(requestJson).
 		Set("Accept", "application/json").

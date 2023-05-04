@@ -17,12 +17,15 @@ type DeployCommand struct {
 
 type DeployCommandInstance struct {
 	commandFile string
+	description string
 	argsPrefix  []string
 	operators   []string
 }
 
 func (dc *DeployConfig) Compile() (*DeployCommand, error) {
-	var cmd DeployCommand
+	cmd := &DeployCommand{
+		instances: make(map[string]*DeployCommandInstance),
+	}
 
 	templates := make(map[string]string, len(dc.Templates)) // name to filename
 	for _, tc := range dc.Templates {
@@ -74,12 +77,13 @@ func (dc *DeployConfig) Compile() (*DeployCommand, error) {
 		}
 		cmd.instances[cc.Name] = &DeployCommandInstance{
 			commandFile: tmplFile,
+			description: cc.Description,
 			argsPrefix:  cc.ArgsPrefix,
 			operators:   cc.Operators,
 		}
 	}
 
-	return &cmd, nil
+	return cmd, nil
 }
 
 func (dc *DeployCommand) Execute(ctx *Context) error {
@@ -130,11 +134,16 @@ func (dc *DeployCommand) Execute(ctx *Context) error {
 
 func (dc *DeployCommand) MakeHelpMessage() []string {
 	var lines []string
-	lines = append(lines, "# deploy")
+	lines = append(lines, "## deploy commands")
 	for name, cmd := range dc.instances {
-		lines = append(lines, fmt.Sprintf("- %sdeploy %s", config.Prefix, name))
+		lines = append(lines, fmt.Sprintf(
+			"- `%sdeploy %s`%s",
+			config.Prefix,
+			name,
+			lo.Ternary(cmd.description != "", " - "+cmd.description, ""),
+		))
 		if len(cmd.operators) > 0 {
-			lines = append(lines, fmt.Sprintf("- operators: %s", strings.Join(cmd.operators, ", ")))
+			lines = append(lines, fmt.Sprintf("  - operators: %s", strings.Join(cmd.operators, ", ")))
 		}
 	}
 	return lines
