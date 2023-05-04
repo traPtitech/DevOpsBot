@@ -24,8 +24,27 @@ type Stamps struct {
 }
 
 type CommandsConfig struct {
+	Deploy   DeployConfig   `yaml:"deploy"`
 	Services ServicesConfig `yaml:"services"`
 	Servers  ServersConfig  `yaml:"servers"`
+}
+
+type DeployConfig struct {
+	Templates []*DeployTemplateConfig `yaml:"templates"`
+	Commands  []*DeployCommandConfig  `yaml:"commands"`
+}
+
+type DeployTemplateConfig struct {
+	Name        string `yaml:"name"`
+	Command     string `yaml:"command"`
+	CommandFile string `yaml:"commandFile"`
+}
+
+type DeployCommandConfig struct {
+	Name        string   `yaml:"name"`
+	TemplateRef string   `yaml:"templateRef"`
+	ArgsPrefix  []string `yaml:"argsPrefix"`
+	Operators   []string `yaml:"operators"`
 }
 
 type ServicesConfig struct {

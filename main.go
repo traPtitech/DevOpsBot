@@ -31,16 +31,26 @@ func main() {
 	if err != nil {
 		logger.Fatal("failed to load config", zap.Error(err))
 	}
+
+	// Register commands
+	deployCmd, err := config.Commands.Deploy.Compile()
+	if err != nil {
+		logger.Fatal("compiling deploy cmd", zap.Error(err))
+	}
+	commands["deploy"] = deployCmd
+
 	svcCmd, err := config.Commands.Services.Compile()
 	if err != nil {
 		logger.Fatal("invalid services config", zap.Error(err))
 	}
 	commands["service"] = svcCmd
+
 	svrCmd, err := config.Commands.Servers.Compile()
 	if err != nil {
 		logger.Fatal("invalid servers config", zap.Error(err))
 	}
 	commands["server"] = svrCmd
+
 	commands["exec-log"] = &ExecLogCommand{svc: svcCmd, svr: svrCmd}
 	commands["version"] = &VersionCommand{}
 

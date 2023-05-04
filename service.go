@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/kballard/go-shellquote"
+	"github.com/samber/lo"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/ssh"
 )
@@ -46,7 +47,7 @@ func (ss Services) Execute(ctx *Context) error {
 
 	if args[0] == "help" {
 		// サービス一覧表示
-		return ctx.Reply(ss.MakeHelpMessage(), "")
+		return ctx.Reply(ss.MakeHelpMessage())
 	}
 
 	s, ok := ss[args[0]]
@@ -106,7 +107,7 @@ func (s *Service) Execute(ctx *Context) error {
 
 	if args[0] == "help" {
 		// サービスヘルプを表示
-		return ctx.Reply(s.MakeHelpMessage(), "")
+		return ctx.Reply(s.MakeHelpMessage())
 	}
 
 	c, ok := s.Commands[args[0]]
@@ -218,7 +219,7 @@ func (sc *ServiceCommand) GetOperators() []string {
 
 // CheckOperator nameユーザーがこのコマンドを実行可能かどうか
 func (sc *ServiceCommand) CheckOperator(name string) bool {
-	return StringArrayContains(sc.GetOperators(), name)
+	return lo.Contains(sc.GetOperators(), name)
 }
 
 // Execute Commandインターフェース実装

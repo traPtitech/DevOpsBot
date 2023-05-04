@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/dghubble/sling"
+	"github.com/samber/lo"
 	"go.uber.org/zap"
 )
 
@@ -41,7 +42,7 @@ func (ss Servers) Execute(ctx *Context) error {
 
 	if args[0] == "help" {
 		// サーバー一覧表示
-		return ctx.Reply(ss.MakeHelpMessage(), "")
+		return ctx.Reply(ss.MakeHelpMessage())
 	}
 
 	s, ok := ss[args[0]]
@@ -85,7 +86,7 @@ type Server struct {
 }
 
 // Execute Commandインターフェース実装
-func (s Server) Execute(ctx *Context) error {
+func (s *Server) Execute(ctx *Context) error {
 	if len(ctx.Args) < 3 {
 		return ctx.ReplyBad("Invalid Arguments")
 	}
@@ -93,7 +94,7 @@ func (s Server) Execute(ctx *Context) error {
 	args := ctx.Args[2:]
 
 	if args[0] == "help" {
-		return ctx.Reply(s.MakeHelpMessage(), "")
+		return ctx.Reply(s.MakeHelpMessage())
 	}
 
 	c, ok := s.Commands[args[0]]
@@ -139,7 +140,7 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 	// ctx.Args = server [server_name] restart [SOFT|HARD]
 	args := ctx.Args[3:]
 
-	if !StringArrayContains([]string{"SOFT", "HARD"}, args[0]) {
+	if !lo.Contains([]string{"SOFT", "HARD"}, args[0]) {
 		return ctx.ReplyBad(fmt.Sprintf("Unknown restart type: `%s`", args[0]))
 	}
 
@@ -224,7 +225,7 @@ func (s *Server) GetOperators() []string {
 
 // CheckOperator nameユーザーがこのコマンドを実行可能かどうか
 func (s *Server) CheckOperator(name string) bool {
-	return StringArrayContains(s.GetOperators(), name)
+	return lo.Contains(s.GetOperators(), name)
 }
 
 func getConohaAPIToken() (string, error) {
