@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
 	traqwsbot "github.com/traPtitech/traq-ws-bot"
@@ -25,6 +24,8 @@ func main() {
 		panic(err)
 	}
 	defer logger.Sync()
+
+	logger.Info(fmt.Sprintf("DevOpsBot `v%s` initializing", version))
 
 	// 設定ファイル読み込み
 	config, err = LoadConfig(getEnvOrDefault("CONFIG_FILE", "./config.yml"))
@@ -65,11 +66,6 @@ func main() {
 	bot.OnMessageCreated(BotMessageReceived)
 
 	// 起動
-	if err = SendTRAQMessage(context.Background(), config.DevOpsChannelID, fmt.Sprintf(":up: DevOpsBot `v%s` is ready", version)); err != nil {
-		logger.Fatal("failed to send starting message", zap.Error(err))
-	}
-	logger.Info(fmt.Sprintf("DevOpsBot `v%s` is ready", version))
-
 	err = bot.Start()
 	if err != nil {
 		logger.Fatal("starting ws bot", zap.Error(err))

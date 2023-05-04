@@ -107,7 +107,7 @@ func (dc *DeployCommand) Execute(ctx *Context) error {
 	args = append(args, c.argsPrefix...)
 	args = append(args, ctx.Args[2:]...)
 	var buf bytes.Buffer
-	cmd := exec.Command(c.commandFile, args...)
+	cmd := exec.CommandContext(ctx, c.commandFile, args...)
 	cmd.Stdout = &buf
 	cmd.Stderr = &buf
 

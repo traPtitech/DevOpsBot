@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/kballard/go-shellquote"
+	"github.com/samber/lo"
 	"github.com/traPtitech/go-traq"
 	"github.com/traPtitech/traq-ws-bot/payload"
 	"go.uber.org/zap"
@@ -26,9 +28,12 @@ func BotMessageReceived(p *payload.MessageCreated) {
 		_ = PushTRAQStamp(ctx, p.Message.ID, config.Stamps.BadCommand)
 		return
 	}
-	if len(args[0]) == 0 {
-		return // 空メッセージは無視
+	_, argStart, ok := lo.FindIndexOf(args, func(arg string) bool { return strings.HasPrefix(arg, config.Prefix) })
+	if !ok {
+		return
 	}
+	args = args[argStart:]
+	args[0] = strings.TrimPrefix(args[0], config.Prefix)
 
 	cmdCtx := &Context{
 		Context: ctx,

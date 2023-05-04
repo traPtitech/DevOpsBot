@@ -10,6 +10,7 @@ type Config struct {
 	TraqOrigin      string         `yaml:"traqOrigin"`
 	DevOpsChannelID string         `yaml:"devOpsChannelId"`
 	BotAccessToken  string         `yaml:"botAccessToken"`
+	Prefix          string         `yaml:"prefix"`
 	Stamps          Stamps         `yaml:"stamps"`
 	Commands        CommandsConfig `yaml:"commands"`
 }
