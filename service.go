@@ -63,7 +63,7 @@ func (ss Services) MakeHelpMessage() string {
 	var sb strings.Builder
 	sb.WriteString("## service\n")
 	sb.WriteString("### usage:\n")
-	sb.WriteString("`service [service_name] [command]`\n")
+	sb.WriteString(fmt.Sprintf("`%sservice [service_name] [command]`\n", config.Prefix))
 	sb.WriteString("### services:\n")
 	for name, s := range ss {
 		if len(s.Description) > 0 {
@@ -123,7 +123,7 @@ func (s *Service) MakeHelpMessage() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("## service: %s\n", s.Name))
 	sb.WriteString("### usage:\n")
-	sb.WriteString(fmt.Sprintf("`service %s [command]`\n", s.Name))
+	sb.WriteString(fmt.Sprintf("`%sservice %s [command]`\n", config.Prefix, s.Name))
 	sb.WriteString("### commands:\n")
 	for name, c := range s.Commands {
 		sb.WriteString(fmt.Sprintf("+ `%s`\n", name))

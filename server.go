@@ -58,7 +58,7 @@ func (ss Servers) MakeHelpMessage() string {
 	var sb strings.Builder
 	sb.WriteString("## server\n")
 	sb.WriteString("### usage:\n")
-	sb.WriteString("`server [server_name] restart [SOFT|HARD]`\n")
+	sb.WriteString(fmt.Sprintf("`%sserver [server_name] restart [SOFT|HARD]`\n", config.Prefix))
 	sb.WriteString("### servers:\n")
 	for name, s := range ss {
 		if len(s.Description) > 0 {
@@ -110,7 +110,7 @@ func (s *Server) MakeHelpMessage() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("## server: %s\n", s.Name))
 	sb.WriteString("### usage:\n")
-	sb.WriteString(fmt.Sprintf("`server %s restart [SOFT|HARD]`\n", s.Name))
+	sb.WriteString(fmt.Sprintf("`%sserver %s restart [SOFT|HARD]`\n", config.Prefix, s.Name))
 	sb.WriteString("### operators:\n")
 	var quotedUsers []string
 	for _, u := range s.GetOperators() {

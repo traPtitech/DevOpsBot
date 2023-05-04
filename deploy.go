@@ -132,7 +132,7 @@ func (dc *DeployCommand) MakeHelpMessage() []string {
 	var lines []string
 	lines = append(lines, "# deploy")
 	for name, cmd := range dc.instances {
-		lines = append(lines, fmt.Sprintf("- deploy %s", name))
+		lines = append(lines, fmt.Sprintf("- %sdeploy %s", config.Prefix, name))
 		if len(cmd.operators) > 0 {
 			lines = append(lines, fmt.Sprintf("- operators: %s", strings.Join(cmd.operators, ", ")))
 		}
