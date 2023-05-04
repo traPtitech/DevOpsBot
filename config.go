@@ -33,8 +33,9 @@ type CommandsConfig struct {
 }
 
 type DeployConfig struct {
-	Templates []*DeployTemplateConfig `mapstructure:"templates" yaml:"templates"`
-	Commands  []*DeployCommandConfig  `mapstructure:"commands" yaml:"commands"`
+	CommandsDir string                  `mapstructure:"commandsDir" yaml:"commandsDir"`
+	Templates   []*DeployTemplateConfig `mapstructure:"templates" yaml:"templates"`
+	Commands    []*DeployCommandConfig  `mapstructure:"commands" yaml:"commands"`
 }
 
 type DeployTemplateConfig struct {
@@ -85,6 +86,7 @@ func init() {
 	viper.SetDefault("stamps.failure", "")
 	viper.SetDefault("stamps.running", "")
 
+	viper.SetDefault("commands.deploy.commandsDir", "/commands")
 	viper.SetDefault("commands.deploy.templates", nil)
 	viper.SetDefault("commands.deploy.commands", nil)
 

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"github.com/samber/lo"
@@ -44,7 +43,7 @@ func (dc *DeployConfig) Compile() (*DeployCommand, error) {
 
 		filename := tc.CommandFile
 		if filename == "" {
-			f, err := os.CreateTemp("", "command-")
+			f, err := os.CreateTemp(dc.CommandsDir, "command-")
 			if err != nil {
 				return nil, fmt.Errorf("creating command file: %w", err)
 			}
@@ -61,7 +60,7 @@ func (dc *DeployConfig) Compile() (*DeployCommand, error) {
 				return nil, fmt.Errorf("closing command file: %w", err)
 			}
 
-			filename = filepath.Join(os.TempDir(), f.Name())
+			filename = f.Name()
 		}
 		templates[tc.Name] = filename
 	}
