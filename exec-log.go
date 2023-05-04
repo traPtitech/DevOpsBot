@@ -12,6 +12,8 @@ import (
 
 // ExecLogCommand `exec-log [service|server] [name] [command] [unix]`
 type ExecLogCommand struct {
+	svc Services
+	svr Servers
 }
 
 func (ec *ExecLogCommand) Execute(ctx *Context) error {
@@ -26,10 +28,11 @@ func (ec *ExecLogCommand) Execute(ctx *Context) error {
 	}
 
 	var logName string
+	var logsDir string
 
 	switch args[0] {
 	case "service":
-		s, ok := config.Services[args[1]]
+		s, ok := ec.svc[args[1]]
 		if !ok {
 			// サービスが見つからない
 			return ctx.ReplyBad(fmt.Sprintf("Unknown service: `%s`", args[1]))
@@ -45,9 +48,10 @@ func (ec *ExecLogCommand) Execute(ctx *Context) error {
 			return ctx.ReplyForbid()
 		}
 
+		logsDir = config.Commands.Services.LogsDir
 		logName = c.getLogFileNameByUnixTime(unix)
 	case "server":
-		s, ok := config.Servers[args[1]]
+		s, ok := ec.svr[args[1]]
 		if !ok {
 			// サーバーが見つからない
 			return ctx.ReplyBad(fmt.Sprintf("Unknown server: `%s`", args[1]))
@@ -63,12 +67,13 @@ func (ec *ExecLogCommand) Execute(ctx *Context) error {
 			return ctx.ReplyForbid()
 		}
 
+		logsDir = config.Commands.Servers.LogsDir
 		logName = c.getLogFileNameByUnixTime(unix)
 	default:
 		return ctx.ReplyBad("Invalid Arguments")
 	}
 
-	logFilePath := filepath.Join(config.LogsDir, logName)
+	logFilePath := filepath.Join(logsDir, logName)
 
 	if !fileExists(logFilePath) {
 		return ctx.ReplyBad("Log not found")

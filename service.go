@@ -3,44 +3,37 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/kballard/go-shellquote"
-	"go.uber.org/zap"
-	"golang.org/x/crypto/ssh"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/kballard/go-shellquote"
+	"go.uber.org/zap"
+	"golang.org/x/crypto/ssh"
 )
 
-// Services サービスマップ
 type Services map[string]*Service
 
-// UnmarshalYAML gopkg.in/yaml.v2.Unmarshaler 実装
-func (ss *Services) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var tmp map[string]*Service
-	if err := unmarshal(&tmp); err != nil {
-		return err
-	}
-	*ss = tmp
-	for name, s := range *ss {
+func (sc *ServicesConfig) Compile() (Services, error) {
+	ss := make(Services, len(sc.Services))
+	for _, s := range sc.Services {
 		// helpは予約済み
-		if name == "help" {
-			return errors.New("`help` cannot be used as service name")
+		if s.Name == "help" {
+			return nil, errors.New("`help` cannot be used as service name")
 		}
-		s.Name = name
 		for name, c := range s.Commands {
 			// helpは予約済み
 			if name == "help" {
-				return errors.New("`help` cannot be used as service command name")
+				return nil, errors.New("`help` cannot be used as service command name")
 			}
 			c.Name = name
 			c.service = s
 		}
 	}
-	return nil
+	return ss, nil
 }
 
 // Execute Commandインターフェース実装
@@ -84,7 +77,7 @@ func (ss Services) MakeHelpMessage() string {
 // Service サービス
 type Service struct {
 	// Name サービス名
-	Name string `yaml:"-"`
+	Name string `yaml:"name"`
 	// Description サービス説明
 	Description string `yaml:"description"`
 	// Host サービス稼働ホスト名
@@ -212,7 +205,7 @@ func (sc *ServiceCommand) GetSSHUser() string {
 	case len(sc.service.SSHUser) > 0:
 		return sc.service.SSHUser
 	default:
-		return config.DefaultSSHUser
+		return config.Commands.Services.DefaultSSHUser
 	}
 }
 
@@ -252,7 +245,7 @@ func (sc *ServiceCommand) Execute(ctx *Context) error {
 	_ = ctx.ReplyAccept()
 
 	ctx.L().Info("shell command execution starts")
-	ctx.ReplyRunning()
+	_ = ctx.ReplyRunning()
 	err := sc.execute(ctx)
 	ctx.L().Info("shell command execution ends", zap.Error(err))
 
@@ -275,7 +268,7 @@ func (sc *ServiceCommand) Execute(ctx *Context) error {
 		return ctx.ReplyFailure("An internal error has occurred")
 	}
 	defer logFile.Close()
-	b, err := ioutil.ReadAll(io.LimitReader(logFile, 1<<20)) // 1KBまでに抑えとく
+	b, err := io.ReadAll(io.LimitReader(logFile, 1<<20)) // 1KBまでに抑えとく
 	if err != nil {
 		ctx.L().Error("failed to read log file", zap.Error(err))
 		return ctx.ReplyFailure("An internal error has occurred")
@@ -304,7 +297,7 @@ func (sc *ServiceCommand) Execute(ctx *Context) error {
 func (sc *ServiceCommand) execute(ctx *Context) error {
 	// local or remote
 	switch sc.GetExecutionHost() {
-	case "", config.LocalHostName:
+	case "", config.Commands.Services.LocalHostName:
 		return sc.executeLocal(ctx)
 	default:
 		return sc.executeRemote(ctx)
@@ -321,7 +314,7 @@ func (sc *ServiceCommand) executeRemote(ctx *Context) error {
 	defer logFile.Close()
 
 	// 秘密鍵のパース
-	key, err := ssh.ParsePrivateKey([]byte(config.SSHPrivateKey))
+	key, err := ssh.ParsePrivateKey([]byte(config.Commands.Services.SSHPrivateKey))
 	if err != nil {
 		ctx.L().Error("failed to read private key for ssh", zap.Error(err))
 		return err
@@ -405,7 +398,7 @@ func (sc *ServiceCommand) executeLocal(ctx *Context) error {
 
 // openLogFile ログファイルを開く
 func (sc *ServiceCommand) openLogFile(ctx *Context) (*os.File, error) {
-	logFilePath := filepath.Join(config.LogsDir, sc.getLogFileName(ctx))
+	logFilePath := filepath.Join(config.Commands.Services.LogsDir, sc.getLogFileName(ctx))
 	logFile, err := os.OpenFile(logFilePath, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		ctx.L().Error("failed to open log file", zap.String("path", logFilePath), zap.Error(err))

@@ -16,24 +16,19 @@ import (
 
 type Servers map[string]*Server
 
-// UnmarshalYAML gopkg.in/yaml.v2.Unmarshaler 実装
-func (ss *Servers) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var tmp map[string]*Server
-	if err := unmarshal(&tmp); err != nil {
-		return err
-	}
-	*ss = tmp
-	for name, s := range *ss {
+func (sc *ServersConfig) Compile() (Servers, error) {
+	ss := make(Servers, len(sc.Servers))
+	for _, s := range sc.Servers {
 		// helpは予約済み
-		if name == "help" {
-			return errors.New("`help` cannot be used as server name")
+		if s.Name == "help" {
+			return nil, errors.New("`help` cannot be used as server name")
 		}
-		s.Name = name
 		s.Commands = map[string]ServerCommand{
 			"restart": &ServerRestartCommand{s},
 		}
+		ss[s.Name] = s
 	}
-	return nil
+	return ss, nil
 }
 
 // Execute Commandインターフェース実装
@@ -77,7 +72,7 @@ func (ss Servers) MakeHelpMessage() string {
 // Server サーバー
 type Server struct {
 	// Name サーバー名
-	Name string `yaml:"-"`
+	Name string `yaml:"name"`
 	// ServerID サーバーID
 	ServerID string `yaml:"serverId"`
 	// Description サーバー説明
@@ -158,8 +153,8 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 	}
 
 	req, err := sling.New().
-		Base(config.ConohaComputeApiOrigin).
-		Post(fmt.Sprintf("v2/%s/servers/%s/action", config.ConohaTenantID, sc.server.ServerID)).
+		Base(config.Commands.Servers.ConohaComputeApiOrigin).
+		Post(fmt.Sprintf("v2/%s/servers/%s/action", config.Commands.Servers.ConohaTenantID, sc.server.ServerID)).
 		BodyJSON(Map{"reboot": Map{"type": args[0]}}).
 		Set("Accept", "application/json").
 		Set("X-Auth-Token", token).
@@ -206,7 +201,7 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 }
 
 func (sc *ServerRestartCommand) openLogFile(ctx *Context) (*os.File, error) {
-	logFilePath := filepath.Join(config.LogsDir, sc.getLogFileName(ctx))
+	logFilePath := filepath.Join(config.Commands.Servers.LogsDir, sc.getLogFileName(ctx))
 	logFile, err := os.OpenFile(logFilePath, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		ctx.L().Error("failed to open log file", zap.String("path", logFilePath), zap.Error(err))
@@ -246,15 +241,15 @@ func getConohaAPIToken() (string, error) {
 	}{
 		Auth: auth{
 			PasswordCredentials: passwordCredentials{
-				Username: config.ConohaApiUsername,
-				Password: config.ConohaApiPassword,
+				Username: config.Commands.Servers.ConohaApiUsername,
+				Password: config.Commands.Servers.ConohaApiPassword,
 			},
-			TenantId: config.ConohaTenantID,
+			TenantId: config.Commands.Servers.ConohaTenantID,
 		},
 	}
 
 	req, err := sling.New().
-		Base(config.ConohaIdentityApiOrigin).
+		Base(config.Commands.Servers.ConohaIdentityApiOrigin).
 		Post("v2.0/tokens").
 		BodyJSON(requestJson).
 		Set("Accept", "application/json").

@@ -7,21 +7,11 @@ import (
 )
 
 type Config struct {
-	TraqOrigin              string   `yaml:"traqOrigin"`
-	DevOpsChannelID         string   `yaml:"devOpsChannelId"`
-	BotAccessToken          string   `yaml:"botAccessToken"`
-	ConohaIdentityApiOrigin string   `yaml:"conohaIdentityApiOrigin"`
-	ConohaComputeApiOrigin  string   `yaml:"conohaComputeApiOrigin"`
-	ConohaApiUsername       string   `yaml:"conohaApiUsername"`
-	ConohaApiPassword       string   `yaml:"conohaApiPassword"`
-	ConohaTenantID          string   `yaml:"conohaTenantId"`
-	LocalHostName           string   `yaml:"localhostName"`
-	DefaultSSHUser          string   `yaml:"defaultSSHUser"`
-	SSHPrivateKey           string   `yaml:"sshPrivateKey"`
-	LogsDir                 string   `yaml:"logsDir"`
-	Stamps                  Stamps   `yaml:"stamps"`
-	Services                Services `yaml:"services"`
-	Servers                 Servers  `yaml:"servers"`
+	TraqOrigin      string         `yaml:"traqOrigin"`
+	DevOpsChannelID string         `yaml:"devOpsChannelId"`
+	BotAccessToken  string         `yaml:"botAccessToken"`
+	Stamps          Stamps         `yaml:"stamps"`
+	Commands        CommandsConfig `yaml:"commands"`
 }
 
 type Stamps struct {
@@ -31,6 +21,29 @@ type Stamps struct {
 	Success    string `yaml:"success"`
 	Failure    string `yaml:"failure"`
 	Running    string `yaml:"running"`
+}
+
+type CommandsConfig struct {
+	Services ServicesConfig `yaml:"services"`
+	Servers  ServersConfig  `yaml:"servers"`
+}
+
+type ServicesConfig struct {
+	LogsDir        string     `yaml:"logsDir"`
+	LocalHostName  string     `yaml:"localhostName"`
+	DefaultSSHUser string     `yaml:"defaultSSHUser"`
+	SSHPrivateKey  string     `yaml:"sshPrivateKey"`
+	Services       []*Service `yaml:"services"`
+}
+
+type ServersConfig struct {
+	ConohaIdentityApiOrigin string    `yaml:"conohaIdentityApiOrigin"`
+	ConohaComputeApiOrigin  string    `yaml:"conohaComputeApiOrigin"`
+	ConohaApiUsername       string    `yaml:"conohaApiUsername"`
+	ConohaApiPassword       string    `yaml:"conohaApiPassword"`
+	ConohaTenantID          string    `yaml:"conohaTenantId"`
+	LogsDir                 string    `yaml:"logsDir"`
+	Servers                 []*Server `yaml:"servers"`
 }
 
 func LoadConfig(configFile string) (*Config, error) {

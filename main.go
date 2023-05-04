@@ -31,9 +31,17 @@ func main() {
 	if err != nil {
 		logger.Fatal("failed to load config", zap.Error(err))
 	}
-	commands["service"] = config.Services
-	commands["server"] = config.Servers
-	commands["exec-log"] = &ExecLogCommand{}
+	svcCmd, err := config.Commands.Services.Compile()
+	if err != nil {
+		logger.Fatal("invalid services config", zap.Error(err))
+	}
+	commands["service"] = svcCmd
+	svrCmd, err := config.Commands.Servers.Compile()
+	if err != nil {
+		logger.Fatal("invalid servers config", zap.Error(err))
+	}
+	commands["server"] = svrCmd
+	commands["exec-log"] = &ExecLogCommand{svc: svcCmd, svr: svrCmd}
 	commands["version"] = &VersionCommand{}
 
 	bot, err = traqwsbot.NewBot(&traqwsbot.Options{
