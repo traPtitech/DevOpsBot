@@ -106,6 +106,8 @@ func (dc *DeployCommand) Execute(ctx *Context) error {
 	}
 
 	// Run
+	_ = ctx.ReplyRunning()
+
 	var args []string
 	args = append(args, c.argsPrefix...)
 	args = append(args, ctx.Args[2:]...)
