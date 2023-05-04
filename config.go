@@ -57,13 +57,24 @@ type ServicesConfig struct {
 }
 
 type ServersConfig struct {
-	ConohaIdentityApiOrigin string    `yaml:"conohaIdentityApiOrigin"`
-	ConohaComputeApiOrigin  string    `yaml:"conohaComputeApiOrigin"`
-	ConohaApiUsername       string    `yaml:"conohaApiUsername"`
-	ConohaApiPassword       string    `yaml:"conohaApiPassword"`
-	ConohaTenantID          string    `yaml:"conohaTenantId"`
-	LogsDir                 string    `yaml:"logsDir"`
-	Servers                 []*Server `yaml:"servers"`
+	ConohaIdentityApiOrigin string                  `yaml:"conohaIdentityApiOrigin"`
+	ConohaComputeApiOrigin  string                  `yaml:"conohaComputeApiOrigin"`
+	ConohaApiUsername       string                  `yaml:"conohaApiUsername"`
+	ConohaApiPassword       string                  `yaml:"conohaApiPassword"`
+	ConohaTenantID          string                  `yaml:"conohaTenantId"`
+	LogsDir                 string                  `yaml:"logsDir"`
+	Servers                 []*ServerInstanceConfig `yaml:"servers"`
+}
+
+type ServerInstanceConfig struct {
+	// Name サーバー名
+	Name string `yaml:"name"`
+	// ServerID サーバーID
+	ServerID string `yaml:"serverId"`
+	// Description サーバー説明
+	Description string `yaml:"description"`
+	// Operators コマンド実行可能なユーザーの名前のデフォルト配列
+	Operators []string `yaml:"operators"`
 }
 
 func LoadConfig(configFile string) (*Config, error) {

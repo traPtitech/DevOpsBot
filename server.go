@@ -15,37 +15,50 @@ import (
 	"go.uber.org/zap"
 )
 
-type Servers map[string]*Server
+type ServersCommand struct {
+	instances map[string]*ServerInstance
+}
 
-func (sc *ServersConfig) Compile() (Servers, error) {
-	ss := make(Servers, len(sc.Servers))
-	for _, s := range sc.Servers {
+func (sc *ServersConfig) Compile() (*ServersCommand, error) {
+	var cmd ServersCommand
+
+	cmd.instances = make(map[string]*ServerInstance, len(sc.Servers))
+	for _, sic := range sc.Servers {
 		// helpは予約済み
-		if s.Name == "help" {
+		if sic.Name == "help" {
 			return nil, errors.New("`help` cannot be used as server name")
 		}
-		s.Commands = map[string]ServerCommand{
-			"restart": &ServerRestartCommand{s},
+		if sic.ServerID == "" {
+			return nil, errors.New("serverID cannot be empty")
 		}
-		ss[s.Name] = s
+
+		s := &ServerInstance{
+			Name:        sic.Name,
+			ServerID:    sic.ServerID,
+			Description: sic.Description,
+			Operators:   sic.Operators,
+			Commands:    make(map[string]ServerCommand),
+		}
+		s.Commands["restart"] = &ServerRestartCommand{s}
+		cmd.instances[s.Name] = s
 	}
-	return ss, nil
+	return &cmd, nil
 }
 
 // Execute Commandインターフェース実装
-func (ss Servers) Execute(ctx *Context) error {
+func (sc *ServersCommand) Execute(ctx *Context) error {
 	if len(ctx.Args) < 2 {
-		return ctx.Reply(ss.MakeHelpMessage()...)
+		return ctx.Reply(sc.MakeHelpMessage()...)
 	}
 	// ctx.Args = server [server_name] restart [SOFT|HARD]
 	args := ctx.Args[1:]
 
 	if args[0] == "help" {
 		// サーバー一覧表示
-		return ctx.Reply(ss.MakeHelpMessage()...)
+		return ctx.Reply(sc.MakeHelpMessage()...)
 	}
 
-	s, ok := ss[args[0]]
+	s, ok := sc.instances[args[0]]
 	if !ok {
 		// サーバーが見つからない
 		return ctx.ReplyBad(fmt.Sprintf("Unknown server: `%s`", args[0]))
@@ -54,10 +67,10 @@ func (ss Servers) Execute(ctx *Context) error {
 }
 
 // MakeHelpMessage server help用のメッセージを作成
-func (ss Servers) MakeHelpMessage() []string {
+func (sc *ServersCommand) MakeHelpMessage() []string {
 	var lines []string
 	lines = append(lines, "# server")
-	for name, s := range ss {
+	for name, s := range sc.instances {
 		if len(s.Description) > 0 {
 			lines = append(lines, fmt.Sprintf("+ `%s` - %s", name, s.Description))
 		} else {
@@ -70,23 +83,17 @@ func (ss Servers) MakeHelpMessage() []string {
 	return lines
 }
 
-// Server サーバー
-type Server struct {
-	// Name サーバー名
-	Name string `yaml:"name"`
-	// ServerID サーバーID
-	ServerID string `yaml:"serverId"`
-	// Description サーバー説明
-	Description string `yaml:"description"`
-	// Operators コマンド実行可能なユーザーの名前のデフォルト配列
-	Operators []string `yaml:"operators"`
+type ServerInstance struct {
+	Name        string
+	ServerID    string
+	Description string
+	Operators   []string
 
-	// Commands サーバーコマンド UnmarshalYAMLで追加
-	Commands map[string]ServerCommand `yaml:"-"`
+	Commands map[string]ServerCommand
 }
 
 // Execute Commandインターフェース実装
-func (s *Server) Execute(ctx *Context) error {
+func (s *ServerInstance) Execute(ctx *Context) error {
 	if len(ctx.Args) < 3 {
 		return ctx.ReplyBad("Invalid Arguments")
 	}
@@ -106,7 +113,7 @@ func (s *Server) Execute(ctx *Context) error {
 }
 
 // MakeHelpMessage server [name] help用のメッセージを作成
-func (s *Server) MakeHelpMessage() []string {
+func (s *ServerInstance) MakeHelpMessage() []string {
 	var lines []string
 	lines = append(lines, fmt.Sprintf("## server: %s", s.Name))
 	lines = append(lines, "### usage:")
@@ -122,7 +129,7 @@ type ServerCommand interface {
 }
 
 type ServerRestartCommand struct {
-	server *Server
+	server *ServerInstance
 }
 
 func (sc *ServerRestartCommand) Execute(ctx *Context) error {
@@ -215,12 +222,12 @@ func (sc *ServerRestartCommand) getLogFileNameByUnixTime(unix int64) string {
 	return fmt.Sprintf("exec-%s-%s-%d", sc.server.Name, "restart", unix)
 }
 
-func (s *Server) GetOperators() []string {
+func (s *ServerInstance) GetOperators() []string {
 	return s.Operators
 }
 
 // CheckOperator nameユーザーがこのコマンドを実行可能かどうか
-func (s *Server) CheckOperator(name string) bool {
+func (s *ServerInstance) CheckOperator(name string) bool {
 	return lo.Contains(s.GetOperators(), name)
 }
 
