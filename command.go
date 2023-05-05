@@ -1,6 +1,10 @@
 package main
 
 import (
+	"context"
+	"strings"
+
+	"github.com/traPtitech/traq-ws-bot/payload"
 	"go.uber.org/zap"
 )
 
@@ -14,8 +18,9 @@ type Command interface {
 
 // Context コマンド実行コンテキスト
 type Context struct {
+	context.Context
 	// P BOTが受信したMESSAGE_CREATEDイベントの生のペイロード
-	P *MessageCreatedPayload
+	P *payload.MessageCreated
 	// Args 投稿メッセージを空白区切りで分けたもの
 	Args []string
 }
@@ -25,56 +30,58 @@ func (ctx *Context) GetExecutor() string {
 	return ctx.P.Message.User.Name
 }
 
-// ReplyViaDM コマンドメッセージに返信します
-func (ctx *Context) Reply(message, stamp string) (err error) {
+// Reply コマンドメッセージに返信します
+func (ctx *Context) Reply(message ...string) error {
+	return SendTRAQMessage(ctx, ctx.P.Message.ChannelID, strings.Join(message, "\n"))
+}
+
+func (ctx *Context) ReplyWithStamp(stamp string, message ...string) error {
+	err := PushTRAQStamp(ctx, ctx.P.Message.ID, stamp)
+	if err != nil {
+		return err
+	}
 	if len(message) > 0 {
-		err = SendTRAQMessage(ctx.P.Message.ChannelID, message)
+		err = ctx.Reply(message...)
 		if err != nil {
-			return
+			return err
 		}
 	}
-	if len(stamp) > 0 {
-		err = PushTRAQStamp(ctx.P.Message.ID, stamp)
-		if err != nil {
-			return
-		}
-	}
-	return
+	return nil
 }
 
 // ReplyViaDM コマンド実行者にDMで返信します
-func (ctx *Context) ReplyViaDM(message string) error {
-	return SendTRAQDirectMessage(ctx.P.Message.User.ID, message)
+func (ctx *Context) ReplyViaDM(message ...string) error {
+	return SendTRAQDirectMessage(ctx, ctx.P.Message.User.ID, strings.Join(message, "\n"))
 }
 
 // ReplyBad コマンドメッセージにBadスタンプをつけて返信します
 func (ctx *Context) ReplyBad(message ...string) (err error) {
-	return ctx.Reply(stringOrEmpty(message...), config.Stamps.BadCommand)
+	return ctx.ReplyWithStamp(config.Stamps.BadCommand, message...)
 }
 
 // ReplyForbid コマンドメッセージにForbidスタンプをつけて返信します
 func (ctx *Context) ReplyForbid(message ...string) error {
-	return ctx.Reply(stringOrEmpty(message...), config.Stamps.Forbid)
+	return ctx.ReplyWithStamp(config.Stamps.Forbid, message...)
 }
 
 // ReplyAccept コマンドメッセージにAcceptスタンプをつけて返信します
 func (ctx *Context) ReplyAccept(message ...string) error {
-	return ctx.Reply(stringOrEmpty(message...), config.Stamps.Accept)
+	return ctx.ReplyWithStamp(config.Stamps.Accept, message...)
 }
 
 // ReplySuccess コマンドメッセージにSuccessスタンプをつけて返信します
 func (ctx *Context) ReplySuccess(message ...string) error {
-	return ctx.Reply(stringOrEmpty(message...), config.Stamps.Success)
+	return ctx.ReplyWithStamp(config.Stamps.Success, message...)
 }
 
 // ReplyFailure コマンドメッセージにFailureスタンプをつけて返信します
 func (ctx *Context) ReplyFailure(message ...string) error {
-	return ctx.Reply(stringOrEmpty(message...), config.Stamps.Failure)
+	return ctx.ReplyWithStamp(config.Stamps.Failure, message...)
 }
 
 // ReplyRunning コマンドメッセージにRunningスタンプをつけて返信します
 func (ctx *Context) ReplyRunning(message ...string) error {
-	return ctx.Reply(stringOrEmpty(message...), config.Stamps.Running)
+	return ctx.ReplyWithStamp(config.Stamps.Running, message...)
 }
 
 func (ctx *Context) L() *zap.Logger {

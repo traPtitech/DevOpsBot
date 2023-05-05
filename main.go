@@ -2,64 +2,65 @@ package main
 
 import (
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/patrickmn/go-cache"
-	"net/http"
-	"time"
 
-	"github.com/dghubble/sling"
+	traqwsbot "github.com/traPtitech/traq-ws-bot"
+
 	"go.uber.org/zap"
 )
 
 var (
-	version       = "UNKNOWN"
-	config        *Config
-	logger        *zap.Logger
-	logAccessUrls *cache.Cache
+	version = "UNKNOWN"
+	logger  *zap.Logger
+	bot     *traqwsbot.Bot
 )
 
 func main() {
 	var err error
 
-	// ロガー初期化
+	// Initialize logger
 	logger, err = zap.NewProduction()
 	if err != nil {
 		panic(err)
 	}
 	defer logger.Sync()
 
-	// 設定ファイル読み込み
-	config, err = LoadConfig(getEnvOrDefault("CONFIG_FILE", "./config.yml"))
+	logger.Info(fmt.Sprintf("DevOpsBot `v%s` initializing", version))
+
+	// Load config
+	err = LoadConfig()
 	if err != nil {
 		logger.Fatal("failed to load config", zap.Error(err))
 	}
-	commands["service"] = config.Services
-	commands["server"] = config.Servers
-	commands["exec-log"] = &ExecLogCommand{}
-	commands["version"] = &VersionCommand{}
 
-	// traQクライアント初期化
-	traQClient = sling.New().Base(config.TraqOrigin).Set("Authorization", "Bearer "+config.BotAccessToken)
+	// Register commands
+	deployCmd, err := config.Commands.Deploy.Compile()
+	if err != nil {
+		logger.Fatal("compiling deploy cmd", zap.Error(err))
+	}
+	commands["deploy"] = deployCmd
 
-	// アクセスキーマップ初期化
-	logAccessUrls = cache.New(3*time.Minute, 5*time.Minute)
+	svrCmd, err := config.Commands.Servers.Compile()
+	if err != nil {
+		logger.Fatal("invalid servers config", zap.Error(err))
+	}
+	commands["server"] = svrCmd
 
-	// HTTPルーター初期化
-	r := chi.NewRouter()
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(middleware.RequestLogger(&AccessLoggingFormatter{l: logger.Named("http")}))
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.Heartbeat("/ping"))
-	r.Post("/_bot", BotEndPoint)
-	r.Get("/log/{key}", GetLog)
+	commands["exec-log"] = &ExecLogCommand{svr: svrCmd}
+	commands["help"] = &HelpCommand{}
 
-	// 起動
-	if err := SendTRAQMessage(config.DevOpsChannelID, fmt.Sprintf(":up: DevOpsBot `v%s` is ready", version)); err != nil {
-		logger.Fatal("failed to send starting message", zap.Error(err))
+	// Start bot
+	bot, err = traqwsbot.NewBot(&traqwsbot.Options{
+		AccessToken: config.Token,
+		Origin:      config.TraqOrigin,
+	})
+	if err != nil {
+		logger.Fatal("setting up traq-ws-bot", zap.Error(err))
 	}
 
-	logger.Info(fmt.Sprintf("DevOpsBot `v%s` is ready", version))
-	http.ListenAndServe(config.BindAddr, r)
+	bot.OnMessageCreated(BotMessageReceived)
+
+	err = bot.Start()
+	if err != nil {
+		logger.Fatal("starting ws bot", zap.Error(err))
+	}
 }

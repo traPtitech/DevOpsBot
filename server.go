@@ -11,45 +11,55 @@ import (
 	"strings"
 
 	"github.com/dghubble/sling"
+	"github.com/samber/lo"
 	"go.uber.org/zap"
 )
 
-type Servers map[string]*Server
+type ServersCommand struct {
+	instances map[string]*ServerInstance
+}
 
-// UnmarshalYAML gopkg.in/yaml.v2.Unmarshaler 実装
-func (ss *Servers) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var tmp map[string]*Server
-	if err := unmarshal(&tmp); err != nil {
-		return err
+func (sc *ServersConfig) Compile() (*ServersCommand, error) {
+	cmd := &ServersCommand{
+		instances: make(map[string]*ServerInstance, len(sc.Servers)),
 	}
-	*ss = tmp
-	for name, s := range *ss {
+
+	for _, sic := range sc.Servers {
 		// helpは予約済み
-		if name == "help" {
-			return errors.New("`help` cannot be used as server name")
+		if sic.Name == "help" {
+			return nil, errors.New("`help` cannot be used as server name")
 		}
-		s.Name = name
-		s.Commands = map[string]ServerCommand{
-			"restart": &ServerRestartCommand{s},
+		if sic.ServerID == "" {
+			return nil, errors.New("serverID cannot be empty")
 		}
+
+		s := &ServerInstance{
+			Name:        sic.Name,
+			ServerID:    sic.ServerID,
+			Description: sic.Description,
+			Operators:   sic.Operators,
+			Commands:    make(map[string]ServerCommand),
+		}
+		s.Commands["restart"] = &ServerRestartCommand{s}
+		cmd.instances[s.Name] = s
 	}
-	return nil
+	return cmd, nil
 }
 
 // Execute Commandインターフェース実装
-func (ss Servers) Execute(ctx *Context) error {
+func (sc *ServersCommand) Execute(ctx *Context) error {
 	if len(ctx.Args) < 2 {
-		return ctx.ReplyBad("Invalid Arguments")
+		return ctx.Reply(sc.MakeHelpMessage()...)
 	}
 	// ctx.Args = server [server_name] restart [SOFT|HARD]
 	args := ctx.Args[1:]
 
 	if args[0] == "help" {
 		// サーバー一覧表示
-		return ctx.Reply(ss.MakeHelpMessage(), "")
+		return ctx.Reply(sc.MakeHelpMessage()...)
 	}
 
-	s, ok := ss[args[0]]
+	s, ok := sc.instances[args[0]]
 	if !ok {
 		// サーバーが見つからない
 		return ctx.ReplyBad(fmt.Sprintf("Unknown server: `%s`", args[0]))
@@ -58,39 +68,34 @@ func (ss Servers) Execute(ctx *Context) error {
 }
 
 // MakeHelpMessage server help用のメッセージを作成
-func (ss Servers) MakeHelpMessage() string {
-	var sb strings.Builder
-	sb.WriteString("## server\n")
-	sb.WriteString("### usage:\n")
-	sb.WriteString("`server [server_name] restart [SOFT|HARD]`\n")
-	sb.WriteString("### servers:\n")
-	for name, s := range ss {
-		if len(s.Description) > 0 {
-			sb.WriteString(fmt.Sprintf("+ `%s` - %s\n", name, s.Description))
-		} else {
-			sb.WriteString(fmt.Sprintf("+ `%s`\n", name))
+func (sc *ServersCommand) MakeHelpMessage() []string {
+	var lines []string
+	lines = append(lines, "## server commands")
+	for name, s := range sc.instances {
+		lines = append(lines, fmt.Sprintf(
+			"- `%sserver %s restart [SOFT|HARD]`%s",
+			config.Prefix,
+			name,
+			lo.Ternary(s.Description != "", " - "+s.Description, ""),
+		))
+		if len(s.Operators) > 0 {
+			lines = append(lines, fmt.Sprintf("  - operators: %s", strings.Join(s.Operators, ", ")))
 		}
 	}
-	return sb.String()
+	return lines
 }
 
-// Server サーバー
-type Server struct {
-	// Name サーバー名
-	Name string `yaml:"-"`
-	// ServerID サーバーID
-	ServerID string `yaml:"serverId"`
-	// Description サーバー説明
-	Description string `yaml:"description"`
-	// Operators コマンド実行可能なユーザーの名前のデフォルト配列
-	Operators []string `yaml:"operators"`
+type ServerInstance struct {
+	Name        string
+	ServerID    string
+	Description string
+	Operators   []string
 
-	// Commands サーバーコマンド UnmarshalYAMLで追加
-	Commands map[string]ServerCommand `yaml:"-"`
+	Commands map[string]ServerCommand
 }
 
 // Execute Commandインターフェース実装
-func (s Server) Execute(ctx *Context) error {
+func (s *ServerInstance) Execute(ctx *Context) error {
 	if len(ctx.Args) < 3 {
 		return ctx.ReplyBad("Invalid Arguments")
 	}
@@ -98,7 +103,7 @@ func (s Server) Execute(ctx *Context) error {
 	args := ctx.Args[2:]
 
 	if args[0] == "help" {
-		return ctx.Reply(s.MakeHelpMessage(), "")
+		return ctx.Reply(s.MakeHelpMessage()...)
 	}
 
 	c, ok := s.Commands[args[0]]
@@ -110,18 +115,14 @@ func (s Server) Execute(ctx *Context) error {
 }
 
 // MakeHelpMessage server [name] help用のメッセージを作成
-func (s *Server) MakeHelpMessage() string {
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("## server: %s\n", s.Name))
-	sb.WriteString("### usage:\n")
-	sb.WriteString(fmt.Sprintf("`server %s restart [SOFT|HARD]`\n", s.Name))
-	sb.WriteString("### operators:\n")
-	var quotedUsers []string
-	for _, u := range s.GetOperators() {
-		quotedUsers = append(quotedUsers, fmt.Sprintf("`%s`", u))
-	}
-	sb.WriteString(strings.Join(quotedUsers, ","))
-	return sb.String()
+func (s *ServerInstance) MakeHelpMessage() []string {
+	var lines []string
+	lines = append(lines, fmt.Sprintf("## server: %s", s.Name))
+	lines = append(lines, "### usage:")
+	lines = append(lines, fmt.Sprintf("`%sserver %s restart [SOFT|HARD]`", config.Prefix, s.Name))
+	lines = append(lines, "### operators:")
+	lines = append(lines, strings.Join(s.GetOperators(), ", "))
+	return lines
 }
 
 type ServerCommand interface {
@@ -130,7 +131,7 @@ type ServerCommand interface {
 }
 
 type ServerRestartCommand struct {
-	server *Server
+	server *ServerInstance
 }
 
 func (sc *ServerRestartCommand) Execute(ctx *Context) error {
@@ -144,7 +145,7 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 	// ctx.Args = server [server_name] restart [SOFT|HARD]
 	args := ctx.Args[3:]
 
-	if !StringArrayContains([]string{"SOFT", "HARD"}, args[0]) {
+	if !lo.Contains([]string{"SOFT", "HARD"}, args[0]) {
 		return ctx.ReplyBad(fmt.Sprintf("Unknown restart type: `%s`", args[0]))
 	}
 
@@ -158,8 +159,8 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 	}
 
 	req, err := sling.New().
-		Base(config.ConohaComputeApiOrigin).
-		Post(fmt.Sprintf("v2/%s/servers/%s/action", config.ConohaTenantID, sc.server.ServerID)).
+		Base(config.Commands.Servers.Conoha.Origin.Compute).
+		Post(fmt.Sprintf("v2/%s/servers/%s/action", config.Commands.Servers.Conoha.TenantID, sc.server.ServerID)).
 		BodyJSON(Map{"reboot": Map{"type": args[0]}}).
 		Set("Accept", "application/json").
 		Set("X-Auth-Token", token).
@@ -206,7 +207,7 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 }
 
 func (sc *ServerRestartCommand) openLogFile(ctx *Context) (*os.File, error) {
-	logFilePath := filepath.Join(config.LogsDir, sc.getLogFileName(ctx))
+	logFilePath := filepath.Join(config.Commands.Servers.LogsDir, sc.getLogFileName(ctx))
 	logFile, err := os.OpenFile(logFilePath, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		ctx.L().Error("failed to open log file", zap.String("path", logFilePath), zap.Error(err))
@@ -223,13 +224,13 @@ func (sc *ServerRestartCommand) getLogFileNameByUnixTime(unix int64) string {
 	return fmt.Sprintf("exec-%s-%s-%d", sc.server.Name, "restart", unix)
 }
 
-func (s *Server) GetOperators() []string {
+func (s *ServerInstance) GetOperators() []string {
 	return s.Operators
 }
 
 // CheckOperator nameユーザーがこのコマンドを実行可能かどうか
-func (s *Server) CheckOperator(name string) bool {
-	return StringArrayContains(s.GetOperators(), name)
+func (s *ServerInstance) CheckOperator(name string) bool {
+	return lo.Contains(s.GetOperators(), name)
 }
 
 func getConohaAPIToken() (string, error) {
@@ -246,15 +247,15 @@ func getConohaAPIToken() (string, error) {
 	}{
 		Auth: auth{
 			PasswordCredentials: passwordCredentials{
-				Username: config.ConohaApiUsername,
-				Password: config.ConohaApiPassword,
+				Username: config.Commands.Servers.Conoha.Username,
+				Password: config.Commands.Servers.Conoha.Password,
 			},
-			TenantId: config.ConohaTenantID,
+			TenantId: config.Commands.Servers.Conoha.TenantID,
 		},
 	}
 
 	req, err := sling.New().
-		Base(config.ConohaIdentityApiOrigin).
+		Base(config.Commands.Servers.Conoha.Origin.Identity).
 		Post("v2.0/tokens").
 		BodyJSON(requestJson).
 		Set("Accept", "application/json").

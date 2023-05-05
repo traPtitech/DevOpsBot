@@ -2,19 +2,21 @@ package main
 
 import (
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/patrickmn/go-cache"
-	"net/http"
+	"io"
+	"os"
 	"path/filepath"
 	"strconv"
+
+	"go.uber.org/zap"
 )
 
 // ExecLogCommand `exec-log [service|server] [name] [command] [unix]`
 type ExecLogCommand struct {
+	svr *ServersCommand
 }
 
 func (ec *ExecLogCommand) Execute(ctx *Context) error {
-	// ctx.Args = exec-log [service|server] [name] [command] [unix]
+	// ctx.Args = exec-log server [name] [command] [unix]
 	if len(ctx.Args) != 5 {
 		return ctx.ReplyBad("Invalid Arguments")
 	}
@@ -25,28 +27,11 @@ func (ec *ExecLogCommand) Execute(ctx *Context) error {
 	}
 
 	var logName string
+	var logsDir string
 
 	switch args[0] {
-	case "service":
-		s, ok := config.Services[args[1]]
-		if !ok {
-			// サービスが見つからない
-			return ctx.ReplyBad(fmt.Sprintf("Unknown service: `%s`", args[1]))
-		}
-		c, ok := s.Commands[args[2]]
-		if !ok {
-			// コマンドが見つからない
-			return ctx.ReplyBad(fmt.Sprintf("Unknown command: `%s`", args[2]))
-		}
-
-		// オペレーター確認
-		if !c.CheckOperator(ctx.GetExecutor()) {
-			return ctx.ReplyForbid()
-		}
-
-		logName = c.getLogFileNameByUnixTime(unix)
 	case "server":
-		s, ok := config.Servers[args[1]]
+		s, ok := ec.svr.instances[args[1]]
 		if !ok {
 			// サーバーが見つからない
 			return ctx.ReplyBad(fmt.Sprintf("Unknown server: `%s`", args[1]))
@@ -62,43 +47,29 @@ func (ec *ExecLogCommand) Execute(ctx *Context) error {
 			return ctx.ReplyForbid()
 		}
 
+		logsDir = config.Commands.Servers.LogsDir
 		logName = c.getLogFileNameByUnixTime(unix)
 	default:
 		return ctx.ReplyBad("Invalid Arguments")
 	}
 
-	logFilePath := filepath.Join(config.LogsDir, logName)
+	logFilePath := filepath.Join(logsDir, logName)
 
 	if !fileExists(logFilePath) {
 		return ctx.ReplyBad("Log not found")
 	}
 
-	key := RandAlphaNumericString(30)
-	logAccessUrls.Set(key, logName, cache.DefaultExpiration)
+	f, err := os.Open(logFilePath)
+	if err != nil {
+		ctx.L().Error("opening log file", zap.Error(err))
+		return ctx.ReplyFailure("Error opening log file")
+	}
+	b, err := io.ReadAll(f)
+	if err != nil {
+		ctx.L().Error("reading log file", zap.Error(err))
+		return ctx.ReplyFailure("Error reading log file")
+	}
+
 	_ = ctx.ReplyAccept()
-
-	fileURL := fmt.Sprintf("%s/log/%s", config.DevOpsBotOrigin, key)
-	return ctx.ReplyViaDM(fmt.Sprintf("[View](%s) [Download](%s?dl=1)\n\nThese URL is valid for 3 minutes.", fileURL, fileURL))
-}
-
-func GetLog(w http.ResponseWriter, r *http.Request) {
-	key := chi.URLParam(r, "key")
-	if len(key) == 0 {
-		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-		return
-	}
-	shouldDownloadFile := r.URL.Query().Get("dl") == "1"
-
-	logName, ok := logAccessUrls.Get(key)
-	if !ok {
-		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-		return
-	}
-
-	if shouldDownloadFile {
-		w.Header().Set("content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", logName.(string)))
-	}
-
-	http.ServeFile(w, r, filepath.Join(config.LogsDir, logName.(string)))
-	return
+	return ctx.ReplyViaDM("```\n" + safeConvertString(b) + "\n```")
 }
