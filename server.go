@@ -13,6 +13,7 @@ import (
 	"github.com/dghubble/sling"
 	"github.com/samber/lo"
 	"go.uber.org/zap"
+	"golang.org/x/exp/slices"
 )
 
 type ServersCommand struct {
@@ -71,7 +72,10 @@ func (sc *ServersCommand) Execute(ctx *Context) error {
 func (sc *ServersCommand) MakeHelpMessage() []string {
 	var lines []string
 	lines = append(lines, "## server commands")
-	for name, s := range sc.instances {
+	names := lo.Keys(sc.instances)
+	slices.Sort(names)
+	for _, name := range names {
+		s := sc.instances[name]
 		lines = append(lines, fmt.Sprintf(
 			"- `%sserver %s restart [SOFT|HARD]`%s",
 			config.Prefix,

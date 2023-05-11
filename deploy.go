@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/samber/lo"
+	"golang.org/x/exp/slices"
 )
 
 type DeployCommand struct {
@@ -136,7 +137,10 @@ func (dc *DeployCommand) Execute(ctx *Context) error {
 func (dc *DeployCommand) MakeHelpMessage() []string {
 	var lines []string
 	lines = append(lines, "## deploy commands")
-	for name, cmd := range dc.instances {
+	names := lo.Keys(dc.instances)
+	slices.Sort(names)
+	for _, name := range names {
+		cmd := dc.instances[name]
 		lines = append(lines, fmt.Sprintf(
 			"- `%sdeploy %s`%s",
 			config.Prefix,
