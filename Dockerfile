@@ -41,7 +41,7 @@ FROM alpine:3
 WORKDIR /work
 
 # Install commands for deploy scripts
-RUN apk add --no-cache git openssh
+RUN apk add --no-cache git openssh curl
 RUN mkdir -p /root/.ssh && ssh-keyscan github.com >> /root/.ssh/known_hosts
 
 COPY --from=installer /yq /usr/local/bin/
