@@ -141,15 +141,17 @@ func (dc *DeployCommand) MakeHelpMessage() []string {
 	slices.Sort(names)
 	for _, name := range names {
 		cmd := dc.instances[name]
+		operators := strings.Join(lo.Map(cmd.operators, func(s string, _ int) string { return `:@` + s + `:` }), "")
+		if operators == "" {
+			operators = "everyone"
+		}
 		lines = append(lines, fmt.Sprintf(
-			"- `%sdeploy %s`%s",
+			"- `%sdeploy %s`%s (%s)",
 			config.Prefix,
 			name,
 			lo.Ternary(cmd.description != "", " - "+cmd.description, ""),
+			operators,
 		))
-		if len(cmd.operators) > 0 {
-			lines = append(lines, fmt.Sprintf("  - operators: %s", strings.Join(cmd.operators, ", ")))
-		}
 	}
 	return lines
 }

@@ -76,15 +76,14 @@ func (sc *ServersCommand) MakeHelpMessage() []string {
 	slices.Sort(names)
 	for _, name := range names {
 		s := sc.instances[name]
+		operators := strings.Join(lo.Map(s.Operators, func(s string, _ int) string { return `:@` + s + `:` }), "")
 		lines = append(lines, fmt.Sprintf(
-			"- `%sserver %s restart [SOFT|HARD]`%s",
+			"- `%sserver %s restart [SOFT|HARD]`%s (%s)",
 			config.Prefix,
 			name,
 			lo.Ternary(s.Description != "", " - "+s.Description, ""),
+			operators,
 		))
-		if len(s.Operators) > 0 {
-			lines = append(lines, fmt.Sprintf("  - operators: %s", strings.Join(s.Operators, ", ")))
-		}
 	}
 	return lines
 }
