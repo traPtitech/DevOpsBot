@@ -60,8 +60,8 @@ type ServersConfig struct {
 			Identity string `mapstructure:"identity" yaml:"identity"`
 			Compute  string `mapstructure:"compute" yaml:"compute"`
 		} `mapstructure:"origin" yaml:"origin"`
-		Username string `mapstructure:"apiUsername" yaml:"apiUsername"`
-		Password string `mapstructure:"apiPassword" yaml:"apiPassword"`
+		Username string `mapstructure:"username" yaml:"username"`
+		Password string `mapstructure:"password" yaml:"password"`
 		TenantID string `mapstructure:"tenantID" yaml:"tenantID"`
 	} `mapstructure:"conoha" yaml:"conoha"`
 }
