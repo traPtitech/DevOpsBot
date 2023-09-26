@@ -87,5 +87,6 @@ func PushTRAQStamp(ctx context.Context, messageID, stampID string) error {
 
 // cite traQのメッセージ引用形式を作る
 func cite(messageId string) string {
-	return fmt.Sprintf(`%smessages/%s`, config.TraqOrigin, messageId)
+	origin := strings.ReplaceAll(config.TraqOrigin, "wss", "https")
+	return fmt.Sprintf(`%smessages/%s`, origin, messageId)
 }
