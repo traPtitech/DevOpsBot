@@ -211,7 +211,11 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 			sc.server.Name, "restart", ctx.P.EventTime.Unix(),
 			cite(ctx.P.Message.ID)))
 	}
-	return ctx.ReplyFailure(fmt.Sprintf(":x: Incorrect status code was received from ConoHa API. Status code: `%s`\nPlease check the execution log. `exec-log server %s %s %d` %s", resp.Status, sc.server.Name, "restart", ctx.P.EventTime.Unix(), cite(ctx.P.Message.ID)))
+	return ctx.ReplyFailure(fmt.Sprintf(
+		":x: Incorrect status code was received from ConoHa API. Status code: `%s`\nPlease check the execution log. `%sexec-log server %s %s %d` %s",
+		config.Prefix,
+		resp.Status, sc.server.Name, "restart", ctx.P.EventTime.Unix(),
+		cite(ctx.P.Message.ID)))
 }
 
 func (sc *ServerRestartCommand) openLogFile(ctx *Context) (*os.File, error) {
