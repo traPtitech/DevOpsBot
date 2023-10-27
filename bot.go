@@ -57,32 +57,38 @@ func BotMessageReceived(p *payload.MessageCreated) {
 
 // SendTRAQMessage traQにメッセージ送信
 func SendTRAQMessage(ctx context.Context, channelID string, text string) error {
-	_, _, err := bot.API().
-		ChannelApi.
-		PostMessage(ctx, channelID).
-		PostMessageRequest(traq.PostMessageRequest{Content: text}).
-		Execute()
-	return err
+	return withRetry(ctx, 10, func(ctx context.Context) error {
+		_, _, err := bot.API().
+			ChannelApi.
+			PostMessage(ctx, channelID).
+			PostMessageRequest(traq.PostMessageRequest{Content: text}).
+			Execute()
+		return err
+	})
 }
 
 // SendTRAQDirectMessage traQにダイレクトメッセージ送信
 func SendTRAQDirectMessage(ctx context.Context, userID string, text string) error {
-	_, _, err := bot.API().
-		UserApi.
-		PostDirectMessage(ctx, userID).
-		PostMessageRequest(traq.PostMessageRequest{Content: text}).
-		Execute()
-	return err
+	return withRetry(ctx, 10, func(ctx context.Context) error {
+		_, _, err := bot.API().
+			UserApi.
+			PostDirectMessage(ctx, userID).
+			PostMessageRequest(traq.PostMessageRequest{Content: text}).
+			Execute()
+		return err
+	})
 }
 
 // PushTRAQStamp traQのメッセージにスタンプを押す
 func PushTRAQStamp(ctx context.Context, messageID, stampID string) error {
-	_, err := bot.API().
-		MessageApi.
-		AddMessageStamp(ctx, messageID, stampID).
-		PostMessageStampRequest(traq.PostMessageStampRequest{Count: 1}).
-		Execute()
-	return err
+	return withRetry(ctx, 10, func(ctx context.Context) error {
+		_, err := bot.API().
+			MessageApi.
+			AddMessageStamp(ctx, messageID, stampID).
+			PostMessageStampRequest(traq.PostMessageStampRequest{Count: 1}).
+			Execute()
+		return err
+	})
 }
 
 // cite traQのメッセージ引用形式を作る
