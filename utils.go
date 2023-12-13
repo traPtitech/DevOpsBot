@@ -27,6 +27,13 @@ func safeConvertString(b []byte) string {
 	return bld.String()
 }
 
+func limitLog(s string, limit int) string {
+	if len(s) <= limit {
+		return s
+	}
+	return "(log truncated)\n" + s[len(s)-limit:]
+}
+
 func withRetry(ctx context.Context, maxRetryCount int, fn func(ctx context.Context) error) error {
 	const (
 		initialBackoff = 1 * time.Second

@@ -117,19 +117,21 @@ func (dc *DeployCommand) Execute(ctx *Context) error {
 	cmd.Stdout = &buf
 	cmd.Stderr = &buf
 
+	const logLimit = 9900
+
 	err := cmd.Run()
 	if err != nil {
 		return ctx.ReplyFailure(
 			fmt.Sprintf("exec failed: %v", err),
 			"```",
-			safeConvertString(buf.Bytes()),
+			limitLog(safeConvertString(buf.Bytes()), logLimit),
 			"```",
 		)
 	}
 
 	return ctx.ReplySuccess(
 		"```",
-		safeConvertString(buf.Bytes()),
+		limitLog(safeConvertString(buf.Bytes()), logLimit),
 		"```",
 	)
 }
