@@ -18,6 +18,7 @@ type DeployCommand struct {
 type DeployCommandInstance struct {
 	commandFile string
 	description string
+	argsSyntax  string
 	argsPrefix  []string
 	operators   []string
 }
@@ -78,6 +79,7 @@ func (dc *DeployConfig) Compile() (*DeployCommand, error) {
 		cmd.instances[cc.Name] = &DeployCommandInstance{
 			commandFile: tmplFile,
 			description: cc.Description,
+			argsSyntax:  cc.ArgsSyntax,
 			argsPrefix:  cc.ArgsPrefix,
 			operators:   cc.Operators,
 		}
@@ -147,10 +149,14 @@ func (dc *DeployCommand) MakeHelpMessage() []string {
 		if operators == "" {
 			operators = "everyone"
 		}
+		syntax := lo.Ternary(
+			cmd.argsSyntax == "",
+			fmt.Sprintf("%sdeploy %s", config.Prefix, name),
+			fmt.Sprintf("%sdeploy %s %s", config.Prefix, name, cmd.argsSyntax),
+		)
 		lines = append(lines, fmt.Sprintf(
-			"- `%sdeploy %s`%s (%s)",
-			config.Prefix,
-			name,
+			"- `%s`%s (%s)",
+			syntax,
 			lo.Ternary(cmd.description != "", " - "+cmd.description, ""),
 			operators,
 		))

@@ -48,6 +48,7 @@ type DeployCommandConfig struct {
 	Name        string   `mapstructure:"name" yaml:"name"`
 	TemplateRef string   `mapstructure:"templateRef" yaml:"templateRef"`
 	Description string   `mapstructure:"description" yaml:"description"`
+	ArgsSyntax  string   `mapstructure:"argsSyntax" yaml:"argsSyntax"`
 	ArgsPrefix  []string `mapstructure:"argsPrefix" yaml:"argsPrefix"`
 	Operators   []string `mapstructure:"operators" yaml:"operators"`
 }
