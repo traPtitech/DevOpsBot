@@ -1,4 +1,4 @@
-package main
+package bot
 
 import (
 	"bytes"
@@ -9,6 +9,9 @@ import (
 
 	"github.com/samber/lo"
 	"golang.org/x/exp/slices"
+
+	"github.com/traPtitech/DevOpsBot/pkg/config"
+	"github.com/traPtitech/DevOpsBot/pkg/utils"
 )
 
 type DeployCommand struct {
@@ -23,7 +26,7 @@ type DeployCommandInstance struct {
 	operators   []string
 }
 
-func (dc *DeployConfig) Compile() (*DeployCommand, error) {
+func compileDeployConfig(dc *config.DeployConfig) (*DeployCommand, error) {
 	cmd := &DeployCommand{
 		instances: make(map[string]*DeployCommandInstance),
 	}
@@ -126,14 +129,14 @@ func (dc *DeployCommand) Execute(ctx *Context) error {
 		return ctx.ReplyFailure(
 			fmt.Sprintf("exec failed: %v", err),
 			"```",
-			limitLog(safeConvertString(buf.Bytes()), logLimit),
+			utils.LimitLog(utils.SafeConvertString(buf.Bytes()), logLimit),
 			"```",
 		)
 	}
 
 	return ctx.ReplySuccess(
 		"```",
-		limitLog(safeConvertString(buf.Bytes()), logLimit),
+		utils.LimitLog(utils.SafeConvertString(buf.Bytes()), logLimit),
 		"```",
 	)
 }
@@ -151,8 +154,8 @@ func (dc *DeployCommand) MakeHelpMessage() []string {
 		}
 		syntax := lo.Ternary(
 			cmd.argsSyntax == "",
-			fmt.Sprintf("%sdeploy %s", config.Prefix, name),
-			fmt.Sprintf("%sdeploy %s %s", config.Prefix, name, cmd.argsSyntax),
+			fmt.Sprintf("%sdeploy %s", config.C.Prefix, name),
+			fmt.Sprintf("%sdeploy %s %s", config.C.Prefix, name, cmd.argsSyntax),
 		)
 		lines = append(lines, fmt.Sprintf(
 			"- `%s`%s (%s)",

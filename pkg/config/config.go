@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"os"
@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var config Config
+var C Config
 
 type Config struct {
 	TraqOrigin string         `mapstructure:"traqOrigin" yaml:"traqOrigin"`
@@ -111,5 +111,5 @@ func LoadConfig() error {
 	if err != nil {
 		return err
 	}
-	return viper.Unmarshal(&config)
+	return viper.Unmarshal(&C)
 }

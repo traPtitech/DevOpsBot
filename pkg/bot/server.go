@@ -1,4 +1,4 @@
-package main
+package bot
 
 import (
 	"encoding/json"
@@ -12,13 +12,15 @@ import (
 	"github.com/samber/lo"
 	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
+
+	"github.com/traPtitech/DevOpsBot/pkg/config"
 )
 
 type ServersCommand struct {
 	instances map[string]*ServerInstance
 }
 
-func (sc *ServersConfig) Compile() (*ServersCommand, error) {
+func compileServerCommand(sc *config.ServersConfig) (*ServersCommand, error) {
 	cmd := &ServersCommand{
 		instances: make(map[string]*ServerInstance, len(sc.Servers)),
 	}
@@ -77,7 +79,7 @@ func (sc *ServersCommand) MakeHelpMessage() []string {
 		operators := strings.Join(lo.Map(s.Operators, func(s string, _ int) string { return `:@` + s + `:` }), "")
 		lines = append(lines, fmt.Sprintf(
 			"- `%sserver %s restart [SOFT|HARD]`%s (%s)",
-			config.Prefix,
+			config.C.Prefix,
 			name,
 			lo.Ternary(s.Description != "", " - "+s.Description, ""),
 			operators,
@@ -120,7 +122,7 @@ func (s *ServerInstance) MakeHelpMessage() []string {
 	var lines []string
 	lines = append(lines, fmt.Sprintf("## server: %s", s.Name))
 	lines = append(lines, "### usage:")
-	lines = append(lines, fmt.Sprintf("`%sserver %s restart [SOFT|HARD]`", config.Prefix, s.Name))
+	lines = append(lines, fmt.Sprintf("`%sserver %s restart [SOFT|HARD]`", config.C.Prefix, s.Name))
 	lines = append(lines, "### operators:")
 	lines = append(lines, strings.Join(s.GetOperators(), ", "))
 	return lines
@@ -159,8 +161,8 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 	}
 
 	req, err := sling.New().
-		Base(config.Commands.Servers.Conoha.Origin.Compute).
-		Post(fmt.Sprintf("v2/%s/servers/%s/action", config.Commands.Servers.Conoha.TenantID, sc.server.ServerID)).
+		Base(config.C.Commands.Servers.Conoha.Origin.Compute).
+		Post(fmt.Sprintf("v2/%s/servers/%s/action", config.C.Commands.Servers.Conoha.TenantID, sc.server.ServerID)).
 		BodyJSON(Map{"reboot": Map{"type": args[0]}}).
 		Set("Accept", "application/json").
 		Set("X-Auth-Token", token).
@@ -227,15 +229,15 @@ func getConohaAPIToken() (string, error) {
 	}{
 		Auth: auth{
 			PasswordCredentials: passwordCredentials{
-				Username: config.Commands.Servers.Conoha.Username,
-				Password: config.Commands.Servers.Conoha.Password,
+				Username: config.C.Commands.Servers.Conoha.Username,
+				Password: config.C.Commands.Servers.Conoha.Password,
 			},
-			TenantId: config.Commands.Servers.Conoha.TenantID,
+			TenantId: config.C.Commands.Servers.Conoha.TenantID,
 		},
 	}
 
 	req, err := sling.New().
-		Base(config.Commands.Servers.Conoha.Origin.Identity).
+		Base(config.C.Commands.Servers.Conoha.Origin.Identity).
 		Post("v2.0/tokens").
 		BodyJSON(requestJson).
 		Set("Accept", "application/json").
