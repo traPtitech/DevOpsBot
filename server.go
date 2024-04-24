@@ -207,13 +207,18 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 		return ctx.ReplySuccess(fmt.Sprintf(
 			":white_check_mark: Command execution was successful.\nlog: `%sexec-log server %s %s %d` %s",
 			config.Prefix,
-			sc.server.Name, "restart", ctx.P.EventTime.Unix(),
+			sc.server.Name,
+			"restart",
+			ctx.P.EventTime.Unix(),
 			cite(ctx.P.Message.ID)))
 	}
 	return ctx.ReplyFailure(fmt.Sprintf(
 		":x: Incorrect status code was received from ConoHa API. Status code: `%s`\nPlease check the execution log. `%sexec-log server %s %s %d` %s",
+		resp.Status,
 		config.Prefix,
-		resp.Status, sc.server.Name, "restart", ctx.P.EventTime.Unix(),
+		sc.server.Name,
+		"restart",
+		ctx.P.EventTime.Unix(),
 		cite(ctx.P.Message.ID)))
 }
 
