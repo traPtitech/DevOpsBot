@@ -27,7 +27,7 @@ func BotMessageReceived(p *payload.MessageCreated) {
 
 	args, err := shellquote.Split(p.Message.PlainText)
 	if err != nil {
-		_ = SendTRAQMessage(ctx, p.Message.ChannelID, fmt.Sprintf("invalid syntax error\n%s", cite(p.Message.ID)))
+		_ = SendTRAQMessage(ctx, p.Message.ChannelID, fmt.Sprintf("invalid syntax: %s", err))
 		_ = PushTRAQStamp(ctx, p.Message.ID, config.Stamps.BadCommand)
 		return
 	}
@@ -89,10 +89,4 @@ func PushTRAQStamp(ctx context.Context, messageID, stampID string) error {
 			Execute()
 		return err
 	})
-}
-
-// cite traQのメッセージ引用形式を作る
-func cite(messageId string) string {
-	origin := strings.ReplaceAll(config.TraqOrigin, "wss", "https")
-	return fmt.Sprintf(`%s/messages/%s`, origin, messageId)
 }

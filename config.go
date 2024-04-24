@@ -55,7 +55,6 @@ type DeployCommandConfig struct {
 
 type ServersConfig struct {
 	Servers []*ServerInstanceConfig `mapstructure:"servers" yaml:"servers"`
-	LogsDir string                  `mapstructure:"logsDir" yaml:"logsDir"`
 	Conoha  struct {
 		Origin struct {
 			Identity string `mapstructure:"identity" yaml:"identity"`
@@ -92,7 +91,6 @@ func init() {
 	viper.SetDefault("commands.deploy.commands", nil)
 
 	viper.SetDefault("commands.servers.servers", nil)
-	viper.SetDefault("commands.servers.logsDir", "/logs")
 	viper.SetDefault("commands.servers.conoha.origin.identity", "https://identity.tyo1.conoha.io/")
 	viper.SetDefault("commands.servers.conoha.origin.compute", "https://compute.tyo1.conoha.io/")
 	viper.SetDefault("commands.servers.conoha.username", "")

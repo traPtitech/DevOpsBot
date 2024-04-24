@@ -45,7 +45,6 @@ func main() {
 	}
 	commands["server"] = svrCmd
 
-	commands["exec-log"] = &ExecLogCommand{svr: svrCmd}
 	commands["help"] = &HelpCommand{}
 
 	// Start bot

@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/dghubble/sling"
@@ -130,7 +128,6 @@ func (s *ServerInstance) MakeHelpMessage() []string {
 
 type ServerCommand interface {
 	Execute(ctx *Context) error
-	getLogFileNameByUnixTime(unix int64) string
 }
 
 type ServerRestartCommand struct {
@@ -158,7 +155,7 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 	token, err := getConohaAPIToken()
 	if err != nil {
 		ctx.L().Error("failed to get ConoHa API token", zap.Error(err))
-		return ctx.ReplyFailure(fmt.Sprintf(":x: An error has occurred while getting ConoHa API token. Please retry after a while. %s", cite(ctx.P.Message.ID)))
+		return ctx.ReplyFailure(":x: An error has occurred while getting ConoHa API token. Please retry after a while.")
 	}
 
 	req, err := sling.New().
@@ -179,7 +176,7 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 	ctx.L().Info("post restart request ends")
 	if err != nil {
 		ctx.L().Error("failed to post restart request", zap.Error(err))
-		return ctx.ReplyFailure(fmt.Sprintf(":x: A network error has occurred while posing restart request to ConoHa API. Please retry after a while. %s", cite(ctx.P.Message.ID)))
+		return ctx.ReplyFailure(":x: A network error has occurred while posing restart request to ConoHa API. Please retry after a while.")
 	}
 	defer resp.Body.Close()
 
@@ -189,55 +186,22 @@ func (sc *ServerRestartCommand) Execute(ctx *Context) error {
 		return ctx.ReplyFailure("An internal error has occurred")
 	}
 
-	logFile, err := sc.openLogFile(ctx)
-	if err != nil {
-		ctx.L().Error("failed to open log file", zap.Error(err))
-		return ctx.ReplyFailure("An internal error has occurred")
-	}
-	defer logFile.Close()
+	logStr := fmt.Sprintf(`Request
+- URL: %s
+- RestartType: %s
 
-	_, err = logFile.WriteString(fmt.Sprintf("Request\n- URL: %s\n- RestartType: %s\nResponse\n- Header: %+v\n- Body: %s\n- Status: %s (Expected: 202)\n", req.URL.String(), args[0], resp.Header, string(respBody), resp.Status))
-	if err != nil {
-		ctx.L().Error("failed to write log file", zap.Error(err))
-		return ctx.ReplyFailure("An internal error has occurred")
-	}
+Response
+- Header: %+v
+- Body: %s
+- Status: %s (Expected: 202)
+`, req.URL.String(), args[0], resp.Header, string(respBody), resp.Status)
 
 	ctx.L().Info(fmt.Sprintf("status code: %s", resp.Status))
-	if resp.StatusCode == http.StatusAccepted {
-		return ctx.ReplySuccess(fmt.Sprintf(
-			":white_check_mark: Command execution was successful.\nlog: `%sexec-log server %s %s %d` %s",
-			config.Prefix,
-			sc.server.Name,
-			"restart",
-			ctx.P.EventTime.Unix(),
-			cite(ctx.P.Message.ID)))
+	if resp.StatusCode != http.StatusAccepted {
+		return ctx.ReplyFailure(fmt.Sprintf(":x: Incorrect status code received from ConoHa API.\n```\n%s\n```", logStr))
 	}
-	return ctx.ReplyFailure(fmt.Sprintf(
-		":x: Incorrect status code was received from ConoHa API. Status code: `%s`\nPlease check the execution log. `%sexec-log server %s %s %d` %s",
-		resp.Status,
-		config.Prefix,
-		sc.server.Name,
-		"restart",
-		ctx.P.EventTime.Unix(),
-		cite(ctx.P.Message.ID)))
-}
 
-func (sc *ServerRestartCommand) openLogFile(ctx *Context) (*os.File, error) {
-	logFilePath := filepath.Join(config.Commands.Servers.LogsDir, sc.getLogFileName(ctx))
-	logFile, err := os.OpenFile(logFilePath, os.O_RDWR|os.O_CREATE, 0600)
-	if err != nil {
-		ctx.L().Error("failed to open log file", zap.String("path", logFilePath), zap.Error(err))
-		return nil, err
-	}
-	return logFile, nil
-}
-
-func (sc *ServerRestartCommand) getLogFileName(ctx *Context) string {
-	return sc.getLogFileNameByUnixTime(ctx.P.EventTime.Unix())
-}
-
-func (sc *ServerRestartCommand) getLogFileNameByUnixTime(unix int64) string {
-	return fmt.Sprintf("exec-%s-%s-%d", sc.server.Name, "restart", unix)
+	return ctx.ReplySuccess(fmt.Sprintf(":white_check_mark: Command execution was successful.\n```\n%s\n```", logStr))
 }
 
 func (s *ServerInstance) GetOperators() []string {
