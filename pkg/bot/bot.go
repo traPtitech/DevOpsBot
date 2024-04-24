@@ -28,24 +28,12 @@ func Run() error {
 	}
 	defer logger.Sync()
 
-	// Load config
-	err = config.LoadConfig()
-	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
-	}
-
 	// Register commands
 	deployCmd, err := compileDeployConfig(&config.C.Commands.Deploy)
 	if err != nil {
 		return fmt.Errorf("compiling deploy command: %w", err)
 	}
 	commands["deploy"] = deployCmd
-
-	svrCmd, err := compileServerCommand(&config.C.Commands.Servers)
-	if err != nil {
-		return fmt.Errorf("compiling server command: %w", err)
-	}
-	commands["server"] = svrCmd
 
 	commands["help"] = &HelpCommand{}
 
@@ -67,8 +55,6 @@ func Run() error {
 
 	return nil
 }
-
-type Map map[string]interface{}
 
 // botMessageReceived BOTのMESSAGE_CREATEDイベントハンドラ
 func botMessageReceived(p *payload.MessageCreated) {

@@ -98,7 +98,7 @@ func init() {
 	viper.SetDefault("commands.servers.conoha.tenantID", "")
 }
 
-func LoadConfig() error {
+func init() {
 	configFile := os.Getenv("CONFIG_FILE")
 	if configFile == "" {
 		configFile = "./config.yaml"
@@ -109,7 +109,10 @@ func LoadConfig() error {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		return err
+		panic(err)
 	}
-	return viper.Unmarshal(&C)
+	err = viper.Unmarshal(&C)
+	if err != nil {
+		panic(err)
+	}
 }

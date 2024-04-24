@@ -14,7 +14,7 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "DevOpsBot",
 	Short: "A traQ bot for DevOps command execution",
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+	PreRun: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("DevOpsBot v%s initializing\n", utils.Version())
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
