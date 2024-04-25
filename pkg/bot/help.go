@@ -2,17 +2,29 @@ package bot
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/traPtitech/DevOpsBot/pkg/config"
 	"github.com/traPtitech/DevOpsBot/pkg/utils"
 )
 
-type HelpCommand struct{}
+var _ command = (*HelpCommand)(nil)
 
-func (h *HelpCommand) Execute(ctx *Context) error {
+type HelpCommand struct {
+	root *RootCommand
+}
+
+func (h *HelpCommand) execute(ctx *Context) error {
 	var lines []string
 	lines = append(lines, fmt.Sprintf("## DevOpsBot v%s", utils.Version()))
-	lines = append(lines, fmt.Sprintf("- `%sdeploy` - Do deployments", config.C.Prefix))
-	lines = append(lines, fmt.Sprintf("- `%shelp` - This help", config.C.Prefix))
+	lines = append(lines, h.root.helpMessage(0)...)
 	return ctx.Reply(lines...)
+}
+
+func (h *HelpCommand) helpMessage(indent int) []string {
+	return []string{fmt.Sprintf(
+		"%s- `%shelp` - Display help message.",
+		strings.Repeat(" ", indent),
+		config.C.Prefix,
+	)}
 }

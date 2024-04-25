@@ -8,6 +8,12 @@ import (
 	"time"
 )
 
+func Copy[T any, S ~[]T](src S) S {
+	dst := make(S, len(src))
+	copy(dst, src)
+	return dst
+}
+
 func SafeConvertString(b []byte) string {
 	bld := strings.Builder{}
 	bld.Grow(len(b))

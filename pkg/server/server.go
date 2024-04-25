@@ -14,55 +14,36 @@ import (
 )
 
 type ServersCommand struct {
-	instances map[string]*instance
+	sub *subCommand
 }
 
-func Compile(sc *config.ServersConfig) (*ServersCommand, error) {
-	cmd := &ServersCommand{
-		instances: make(map[string]*instance, len(sc.Servers)),
-	}
+func Compile() (*ServersCommand, error) {
+	cmd := &ServersCommand{}
 
-	for _, sic := range sc.Servers {
-		if sic.ServerID == "" {
-			return nil, errors.New("serverID cannot be empty")
-		}
-
-		s := &instance{
-			Name:        sic.Name,
-			ServerID:    sic.ServerID,
-			Description: sic.Description,
-			Commands:    make(map[string]command),
-		}
-		s.Commands["restart"] = &restartCommand{s}
-		cmd.instances[s.Name] = s
+	s := &subCommand{
+		Commands: make(map[string]command),
 	}
+	s.Commands["restart"] = &restartCommand{s}
+	cmd.sub = s
+
 	return cmd, nil
 }
 
 func (sc *ServersCommand) Execute(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("invalid arguments, expected server name")
+		return fmt.Errorf("invalid arguments, expected server id")
 	}
 
-	// args == [server_name] restart [SOFT|HARD]
-	serverName := args[0]
-	s, ok := sc.instances[serverName]
-	if !ok {
-		return fmt.Errorf("server %s not found", serverName)
-	}
-	return s.Execute(args[1:])
+	// args == [server id] restart [SOFT|HARD]
+	serverID := args[0]
+	return sc.sub.Execute(serverID, args[1:])
 }
 
-type instance struct {
-	Name        string
-	ServerID    string
-	Description string
-	Operators   []string
-
+type subCommand struct {
 	Commands map[string]command
 }
 
-func (i *instance) Execute(args []string) error {
+func (i *subCommand) Execute(serverID string, args []string) error {
 	if len(args) < 1 {
 		return errors.New("invalid arguments, expected server action verb (supported: restart)")
 	}
@@ -73,20 +54,20 @@ func (i *instance) Execute(args []string) error {
 	if !ok {
 		return fmt.Errorf("unknown command: `%s`", verb)
 	}
-	return c.Execute(args[1:])
+	return c.Execute(serverID, args[1:])
 }
 
 type command interface {
-	Execute(args []string) error
+	Execute(serverID string, args []string) error
 }
 
 type restartCommand struct {
-	server *instance
+	server *subCommand
 }
 
 type m map[string]any
 
-func (sc *restartCommand) Execute(args []string) error {
+func (sc *restartCommand) Execute(serverID string, args []string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("invalid arguments, expected restart type (SOFT or HARD)")
 	}
@@ -104,8 +85,8 @@ func (sc *restartCommand) Execute(args []string) error {
 	}
 
 	req, err := sling.New().
-		Base(config.C.Commands.Servers.Conoha.Origin.Compute).
-		Post(fmt.Sprintf("v2/%s/servers/%s/action", config.C.Commands.Servers.Conoha.TenantID, sc.server.ServerID)).
+		Base(config.C.Servers.Conoha.Origin.Compute).
+		Post(fmt.Sprintf("v2/%s/servers/%s/action", config.C.Servers.Conoha.TenantID, serverID)).
 		BodyJSON(m{"reboot": m{"type": args[0]}}).
 		Set("Accept", "application/json").
 		Set("X-Auth-Token", token).
@@ -158,15 +139,15 @@ func getConohaAPIToken() (string, error) {
 	}{
 		Auth: auth{
 			PasswordCredentials: passwordCredentials{
-				Username: config.C.Commands.Servers.Conoha.Username,
-				Password: config.C.Commands.Servers.Conoha.Password,
+				Username: config.C.Servers.Conoha.Username,
+				Password: config.C.Servers.Conoha.Password,
 			},
-			TenantId: config.C.Commands.Servers.Conoha.TenantID,
+			TenantId: config.C.Servers.Conoha.TenantID,
 		},
 	}
 
 	req, err := sling.New().
-		Base(config.C.Commands.Servers.Conoha.Origin.Identity).
+		Base(config.C.Servers.Conoha.Origin.Identity).
 		Post("v2.0/tokens").
 		BodyJSON(requestJson).
 		Set("Accept", "application/json").

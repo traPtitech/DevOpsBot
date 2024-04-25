@@ -29,13 +29,10 @@ func Run() error {
 	defer logger.Sync()
 
 	// Register commands
-	deployCmd, err := compileDeployConfig(&config.C.Commands.Deploy)
+	cmds, err := Compile()
 	if err != nil {
-		return fmt.Errorf("compiling deploy command: %w", err)
+		return fmt.Errorf("compiling commands: %w", err)
 	}
-	commands["deploy"] = deployCmd
-
-	commands["help"] = &HelpCommand{}
 
 	// Start bot
 	bot, err = traqwsbot.NewBot(&traqwsbot.Options{
@@ -46,7 +43,7 @@ func Run() error {
 		return fmt.Errorf("creating bot: %w", err)
 	}
 
-	bot.OnMessageCreated(botMessageReceived)
+	bot.OnMessageCreated(botMessageReceived(cmds))
 
 	err = bot.Start()
 	if err != nil {
@@ -57,42 +54,38 @@ func Run() error {
 }
 
 // botMessageReceived BOTのMESSAGE_CREATEDイベントハンドラ
-func botMessageReceived(p *payload.MessageCreated) {
-	ctx := context.Background()
+func botMessageReceived(cmds *RootCommand) func(p *payload.MessageCreated) {
+	return func(p *payload.MessageCreated) {
+		ctx := context.Background()
 
-	if p.Message.User.Bot {
-		return // Ignore bots
-	}
-	if p.Message.ChannelID != config.C.ChannelID {
-		return // DevOpsチャンネル以外からのメッセージは無視
-	}
+		if p.Message.User.Bot {
+			return // Ignore bots
+		}
+		if p.Message.ChannelID != config.C.ChannelID {
+			return // DevOpsチャンネル以外からのメッセージは無視
+		}
 
-	args, err := shellquote.Split(p.Message.PlainText)
-	if err != nil {
-		_ = sendTRAQMessage(ctx, p.Message.ChannelID, fmt.Sprintf("invalid syntax: %s", err))
-		_ = pushTRAQStamp(ctx, p.Message.ID, config.C.Stamps.BadCommand)
-		return
-	}
-	_, argStart, ok := lo.FindIndexOf(args, func(arg string) bool { return strings.HasPrefix(arg, config.C.Prefix) })
-	if !ok {
-		return
-	}
-	args = args[argStart:]
-	args[0] = strings.TrimPrefix(args[0], config.C.Prefix)
+		args, err := shellquote.Split(p.Message.PlainText)
+		if err != nil {
+			_ = sendTRAQMessage(ctx, p.Message.ChannelID, fmt.Sprintf("invalid syntax: %s", err))
+			_ = pushTRAQStamp(ctx, p.Message.ID, config.C.Stamps.BadCommand)
+			return
+		}
+		_, argStart, ok := lo.FindIndexOf(args, func(arg string) bool { return strings.HasPrefix(arg, config.C.Prefix) })
+		if !ok {
+			return
+		}
+		args = args[argStart:]
+		args[0] = strings.TrimPrefix(args[0], config.C.Prefix)
 
-	cmdCtx := &Context{
-		Context: ctx,
-		P:       p,
-		Args:    args,
-	}
-	c, ok := commands[args[0]]
-	if !ok {
-		// コマンドが見つからない
-		_ = cmdCtx.ReplyBad(fmt.Sprintf("Unknown command: `%s`", args[0]))
-		return
-	}
-	err = c.Execute(cmdCtx)
-	if err != nil {
-		cmdCtx.L().Error("failed to execute command", zap.Error(err))
+		cmdCtx := &Context{
+			Context: ctx,
+			P:       p,
+			Args:    args,
+		}
+		err = cmds.execute(cmdCtx)
+		if err != nil {
+			cmdCtx.L().Error("failed to execute command", zap.Error(err))
+		}
 	}
 }
