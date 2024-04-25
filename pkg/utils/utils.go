@@ -1,20 +1,20 @@
-package main
+package utils
 
 import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 	"time"
 )
 
-func fileExists(filename string) bool {
-	_, err := os.Stat(filename)
-	return err == nil
+func Copy[T any, S ~[]T](src S) S {
+	dst := make(S, len(src))
+	copy(dst, src)
+	return dst
 }
 
-func safeConvertString(b []byte) string {
+func SafeConvertString(b []byte) string {
 	bld := strings.Builder{}
 	bld.Grow(len(b))
 	for _, c := range string(b) {
@@ -27,14 +27,14 @@ func safeConvertString(b []byte) string {
 	return bld.String()
 }
 
-func limitLog(s string, limit int) string {
+func LimitLog(s string, limit int) string {
 	if len(s) <= limit {
 		return s
 	}
 	return "(log truncated)\n" + s[len(s)-limit:]
 }
 
-func withRetry(ctx context.Context, maxRetryCount int, fn func(ctx context.Context) error) error {
+func WithRetry(ctx context.Context, maxRetryCount int, fn func(ctx context.Context) error) error {
 	const (
 		initialBackoff = 1 * time.Second
 		maxBackoff     = 60 * time.Second

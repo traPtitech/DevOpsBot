@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.21-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1-alpine AS builder
 
 ENV CGO_ENABLED 0
 
@@ -16,9 +16,9 @@ ARG TARGETARCH
 ENV GOOS=$TARGETOS
 ENV GOARCH=$TARGETARCH
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
-    go build -o /dev-ops-bot -ldflags="-s -w -X main.version=$VERSION" .
+    go build -o /dev-ops-bot -ldflags="-s -w -X pkg.utils.version=$VERSION" .
 
-FROM --platform=$BUILDPLATFORM golang:1.21-alpine AS installer
+FROM --platform=$BUILDPLATFORM golang:1-alpine AS installer
 
 ENV CGO_ENABLED 0
 ARG TARGETOS

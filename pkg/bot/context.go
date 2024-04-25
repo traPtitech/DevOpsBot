@@ -1,20 +1,14 @@
-package main
+package bot
 
 import (
 	"context"
+	"go.uber.org/zap"
 	"strings"
 
 	"github.com/traPtitech/traq-ws-bot/payload"
-	"go.uber.org/zap"
+
+	"github.com/traPtitech/DevOpsBot/pkg/config"
 )
-
-var commands = map[string]Command{}
-
-// Command コマンドインターフェース
-type Command interface {
-	// Execute コマンドを実行します
-	Execute(ctx *Context) error
-}
 
 // Context コマンド実行コンテキスト
 type Context struct {
@@ -32,11 +26,11 @@ func (ctx *Context) GetExecutor() string {
 
 // Reply コマンドメッセージに返信します
 func (ctx *Context) Reply(message ...string) error {
-	return SendTRAQMessage(ctx, ctx.P.Message.ChannelID, strings.Join(message, "\n"))
+	return sendTRAQMessage(ctx, ctx.P.Message.ChannelID, strings.Join(message, "\n"))
 }
 
 func (ctx *Context) ReplyWithStamp(stamp string, message ...string) error {
-	err := PushTRAQStamp(ctx, ctx.P.Message.ID, stamp)
+	err := pushTRAQStamp(ctx, ctx.P.Message.ID, stamp)
 	if err != nil {
 		return err
 	}
@@ -51,37 +45,37 @@ func (ctx *Context) ReplyWithStamp(stamp string, message ...string) error {
 
 // ReplyViaDM コマンド実行者にDMで返信します
 func (ctx *Context) ReplyViaDM(message ...string) error {
-	return SendTRAQDirectMessage(ctx, ctx.P.Message.User.ID, strings.Join(message, "\n"))
+	return sendTRAQDirectMessage(ctx, ctx.P.Message.User.ID, strings.Join(message, "\n"))
 }
 
 // ReplyBad コマンドメッセージにBadスタンプをつけて返信します
 func (ctx *Context) ReplyBad(message ...string) (err error) {
-	return ctx.ReplyWithStamp(config.Stamps.BadCommand, message...)
+	return ctx.ReplyWithStamp(config.C.Stamps.BadCommand, message...)
 }
 
 // ReplyForbid コマンドメッセージにForbidスタンプをつけて返信します
 func (ctx *Context) ReplyForbid(message ...string) error {
-	return ctx.ReplyWithStamp(config.Stamps.Forbid, message...)
+	return ctx.ReplyWithStamp(config.C.Stamps.Forbid, message...)
 }
 
 // ReplyAccept コマンドメッセージにAcceptスタンプをつけて返信します
 func (ctx *Context) ReplyAccept(message ...string) error {
-	return ctx.ReplyWithStamp(config.Stamps.Accept, message...)
+	return ctx.ReplyWithStamp(config.C.Stamps.Accept, message...)
 }
 
 // ReplySuccess コマンドメッセージにSuccessスタンプをつけて返信します
 func (ctx *Context) ReplySuccess(message ...string) error {
-	return ctx.ReplyWithStamp(config.Stamps.Success, message...)
+	return ctx.ReplyWithStamp(config.C.Stamps.Success, message...)
 }
 
 // ReplyFailure コマンドメッセージにFailureスタンプをつけて返信します
 func (ctx *Context) ReplyFailure(message ...string) error {
-	return ctx.ReplyWithStamp(config.Stamps.Failure, message...)
+	return ctx.ReplyWithStamp(config.C.Stamps.Failure, message...)
 }
 
 // ReplyRunning コマンドメッセージにRunningスタンプをつけて返信します
 func (ctx *Context) ReplyRunning(message ...string) error {
-	return ctx.ReplyWithStamp(config.Stamps.Running, message...)
+	return ctx.ReplyWithStamp(config.C.Stamps.Running, message...)
 }
 
 func (ctx *Context) L() *zap.Logger {
