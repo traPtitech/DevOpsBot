@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 
 	"github.com/samber/lo"
-	"golang.org/x/exp/slices"
 
 	"github.com/traPtitech/DevOpsBot/pkg/config"
 	"github.com/traPtitech/DevOpsBot/pkg/utils"
