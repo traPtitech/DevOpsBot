@@ -10,7 +10,7 @@ builds:
     ldflags:
       - -s
       - -w
-      - -X pkg.utils.version={{.Version}}
+      - -X github.com/traPtitech/DevOpsBot/pkg/utils.version={{.Version}}
     goos:
       - darwin
       - linux
