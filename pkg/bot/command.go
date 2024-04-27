@@ -33,6 +33,7 @@ type CommandInstance struct {
 	leadingMatcher []string
 	name           string
 	description    string
+	allowArgs      bool
 	argsSyntax     string
 	argsPrefix     []string
 	operators      []string
@@ -122,6 +123,7 @@ func compileCommands(templates map[string]string, cc []*config.CommandConfig, le
 			leadingMatcher: utils.Copy(leadingMatcher),
 			name:           ci.Name,
 			description:    ci.Description,
+			allowArgs:      ci.AllowArgs,
 			argsSyntax:     ci.ArgsSyntax,
 			argsPrefix:     ci.ArgsPrefix,
 			operators:      ci.Operators,
@@ -201,12 +203,23 @@ func (c *CommandInstance) execute(ctx *Context) error {
 		}
 	}
 
+	// Validate run command arguments (self)
+	if !c.allowArgs && len(ctx.Args) > 0 {
+		return ctx.ReplyBad(fmt.Sprintf(
+			"Command `%s` cannot have extra arguments (you supplied `%s`)\nTry setting allowArgs: true in config to allow extra arguments",
+			c.matcher(),
+			strings.Join(ctx.Args, " "),
+		))
+	}
+
 	// Run command (self)
 	_ = ctx.ReplyRunning()
 
 	var args []string
 	args = append(args, c.argsPrefix...)
-	args = append(args, ctx.Args...)
+	if c.allowArgs {
+		args = append(args, ctx.Args...)
+	}
 	var buf bytes.Buffer
 	cmd := exec.CommandContext(ctx, c.commandFile, args...)
 	cmd.Stdout = &buf

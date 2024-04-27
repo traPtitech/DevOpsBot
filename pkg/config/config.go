@@ -62,6 +62,8 @@ type CommandConfig struct {
 	TemplateRef string `mapstructure:"templateRef" yaml:"templateRef"`
 	// Description should describe what this command does in one line.
 	Description string `mapstructure:"description" yaml:"description"`
+	// AllowArgs is a flag to allow passing extra user command arguments to exec arguments.
+	AllowArgs bool `mapstructure:"allowArgs" yaml:"allowArgs"`
 	// ArgsSyntax is an optional arguments syntax to display in help command.
 	ArgsSyntax string `mapstructure:"argsSyntax" yaml:"argsSyntax"`
 	// ArgsPrefix is always prefixed the arguments (before the user-provided arguments, if any) when executing the command template.
