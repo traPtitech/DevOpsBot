@@ -16,7 +16,7 @@ import (
 
 // command コマンドインターフェース
 type command interface {
-	execute(ctx *Context) error
+	execute(ctx Context) error
 	helpMessage(indent int) []string
 }
 
@@ -152,34 +152,34 @@ func compileCommands(templates map[string]string, cc []*config.CommandConfig, le
 	return cmds, nil
 }
 
-func (dc *RootCommand) execute(ctx *Context) error {
-	name := ctx.Args[0]
+func (dc *RootCommand) execute(ctx Context) error {
+	name := ctx.Args()[0]
 
 	c, ok := dc.cmds[name]
 	if !ok {
 		return ctx.ReplyBad(fmt.Sprintf("Unrecognized command `%s`, try /help", name))
 	}
 
-	ctx.Args = ctx.Args[1:] // Cut matching args
+	ctx = ctx.ShiftArgs() // Cut matching args
 	return c.execute(ctx)
 }
 
-func (c *CommandInstance) execute(ctx *Context) error {
+func (c *CommandInstance) execute(ctx Context) error {
 	// If this command has permitted operators defined, check operator
 	if len(c.operators) > 0 {
-		if !lo.Contains(c.operators, ctx.GetExecutor()) {
+		if !lo.Contains(c.operators, ctx.Executor()) {
 			// User is not allowed to execute this command (or any subcommand)
 			return ctx.ReplyForbid(fmt.Sprintf("You do not have permission to execute this command (`%s`).", c.matcher()))
 		}
 	}
 
 	// Check if any sub-commands match
-	if len(ctx.Args) > 0 {
-		subVerb := ctx.Args[0]
+	if len(ctx.Args()) > 0 {
+		subVerb := ctx.Args()[0]
 		subCmd, ok := c.subCommands[subVerb]
 		if ok {
 			// A sub-command match
-			ctx.Args = ctx.Args[1:] // Cut matching args
+			ctx = ctx.ShiftArgs() // Cut matching args
 			return subCmd.execute(ctx)
 		}
 
@@ -196,7 +196,7 @@ func (c *CommandInstance) execute(ctx *Context) error {
 			var lines []string
 			lines = append(lines, fmt.Sprintf("## `%s` Usage", c.matcher()))
 			lines = append(lines, c.helpMessage(0)...)
-			return ctx.Reply(lines...)
+			return ctx.ReplyBad(lines...)
 		} else {
 			// Otherwise, just error
 			return ctx.ReplyBad(fmt.Sprintf("Command `%s` has no use, maybe the bot is badly configured?", c.matcher()))
@@ -204,11 +204,11 @@ func (c *CommandInstance) execute(ctx *Context) error {
 	}
 
 	// Validate run command arguments (self)
-	if !c.allowArgs && len(ctx.Args) > 0 {
+	if !c.allowArgs && len(ctx.Args()) > 0 {
 		return ctx.ReplyBad(fmt.Sprintf(
 			"Command `%s` cannot have extra arguments (you supplied `%s`)\nTry setting allowArgs: true in config to allow extra arguments",
 			c.matcher(),
-			strings.Join(ctx.Args, " "),
+			strings.Join(ctx.Args(), " "),
 		))
 	}
 
@@ -218,7 +218,7 @@ func (c *CommandInstance) execute(ctx *Context) error {
 	var args []string
 	args = append(args, c.argsPrefix...)
 	if c.allowArgs {
-		args = append(args, ctx.Args...)
+		args = append(args, ctx.Args()...)
 	}
 	var buf bytes.Buffer
 	cmd := exec.CommandContext(ctx, c.commandFile, args...)

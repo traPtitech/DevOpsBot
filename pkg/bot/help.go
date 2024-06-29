@@ -14,11 +14,11 @@ type HelpCommand struct {
 	root *RootCommand
 }
 
-func (h *HelpCommand) execute(ctx *Context) error {
+func (h *HelpCommand) execute(ctx Context) error {
 	var lines []string
 	lines = append(lines, fmt.Sprintf("## DevOpsBot v%s", utils.Version()))
 	lines = append(lines, h.root.helpMessage(0)...)
-	return ctx.Reply(lines...)
+	return ctx.ReplySuccess(lines...)
 }
 
 func (h *HelpCommand) helpMessage(indent int) []string {
