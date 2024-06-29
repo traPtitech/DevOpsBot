@@ -36,8 +36,8 @@ func Run() error {
 
 	// Start bot
 	bot, err = traqwsbot.NewBot(&traqwsbot.Options{
-		AccessToken: config.C.Token,
-		Origin:      config.C.TraqOrigin,
+		AccessToken: config.C.Traq.Token,
+		Origin:      config.C.Traq.Origin,
 	})
 	if err != nil {
 		return fmt.Errorf("creating bot: %w", err)
@@ -61,7 +61,7 @@ func botMessageReceived(cmds *RootCommand) func(p *payload.MessageCreated) {
 		if p.Message.User.Bot {
 			return // Ignore bots
 		}
-		if p.Message.ChannelID != config.C.ChannelID {
+		if p.Message.ChannelID != config.C.Traq.ChannelID {
 			return // DevOpsチャンネル以外からのメッセージは無視
 		}
 

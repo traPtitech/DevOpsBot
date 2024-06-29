@@ -10,12 +10,9 @@ import (
 var C Config
 
 type Config struct {
-	// TraqOrigin is WebSocket traQ origin. (example: wss://q.trap.jp)
-	TraqOrigin string `mapstructure:"traqOrigin" yaml:"traqOrigin"`
-	// ChannelID is the channel in which to await for commands
-	ChannelID string `mapstructure:"channelID" yaml:"channelID"`
-	// Token is traQ bot token
-	Token string `mapstructure:"token" yaml:"token"`
+	// Traq is traQ-related authentication config
+	Traq TraqConfig `mapstructure:"traq" yaml:"traq"`
+
 	// Prefix is bot command prefix
 	Prefix string `mapstructure:"prefix" yaml:"prefix"`
 	// Stamps define which stamps to use for bot reactions
@@ -30,6 +27,15 @@ type Config struct {
 
 	// Servers define server auth information if this bot binary is used with "server" sub-command
 	Servers ServersConfig `mapstructure:"servers" yaml:"servers"`
+}
+
+type TraqConfig struct {
+	// Origin is WebSocket traQ origin. (example: wss://q.trap.jp)
+	Origin string `mapstructure:"origin" yaml:"origin"`
+	// ChannelID is the channel in which to await for commands
+	ChannelID string `mapstructure:"channelID" yaml:"channelID"`
+	// Token is traQ bot token
+	Token string `mapstructure:"token" yaml:"token"`
 }
 
 type Stamps struct {
@@ -90,9 +96,10 @@ type ServersConfig struct {
 }
 
 func init() {
-	viper.SetDefault("traqOrigin", "wss://q.trap.jp")
-	viper.SetDefault("channelID", "")
-	viper.SetDefault("token", "")
+	viper.SetDefault("traq.origin", "wss://q.trap.jp")
+	viper.SetDefault("traq.channelID", "")
+	viper.SetDefault("traq.token", "")
+
 	viper.SetDefault("prefix", "/")
 
 	viper.SetDefault("stamps.accept", "")
