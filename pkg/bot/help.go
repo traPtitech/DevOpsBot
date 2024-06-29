@@ -18,6 +18,7 @@ type HelpCommand struct {
 func (h *HelpCommand) Execute(ctx domain.Context) error {
 	var lines []string
 	lines = append(lines, fmt.Sprintf("## DevOpsBot v%s", utils.Version()))
+	lines = append(lines, "")
 	lines = append(lines, h.root.HelpMessage(0)...)
 	return ctx.ReplySuccess(lines...)
 }

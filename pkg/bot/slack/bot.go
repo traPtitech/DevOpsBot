@@ -134,7 +134,7 @@ func (s *slackBot) handleSlashEvent(e *slack.SlashCommand) error {
 
 	// Prepare a new message to add reaction to
 	commandText := fmt.Sprintf("%s %s", e.Command, e.Text)
-	responseText := fmt.Sprintf("%s <@%s|%s> used slash command: %s",
+	responseText := fmt.Sprintf("%s (<@%s|%s>) used slash command: %s",
 		e.UserName, e.UserID, e.UserName,
 		commandText)
 	_, ts, err := s.sock.PostMessage(e.ChannelID, slack.MsgOptionText(responseText, false))

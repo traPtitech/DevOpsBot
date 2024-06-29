@@ -45,7 +45,18 @@ func (ctx *slackContext) L() *zap.Logger {
 func (ctx *slackContext) sendSlackMessage(channelID string, text string) error {
 	api := ctx.api
 	return utils.WithRetry(ctx, 10, func(ctx context.Context) error {
-		_, _, err := api.PostMessage(channelID, slack.MsgOptionText(text, false))
+		_, _, err := api.PostMessage(channelID, slack.MsgOptionBlocks(
+			slack.NewSectionBlock(
+				slack.NewTextBlockObject(
+					slack.MarkdownType,
+					text,
+					false,
+					false,
+				),
+				nil,
+				nil,
+			),
+		))
 		return err
 	})
 }

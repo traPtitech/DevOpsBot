@@ -180,7 +180,7 @@ func (c *CommandInstance) Execute(ctx domain.Context) error {
 
 		if c.commandFile == "" {
 			// Sub-commands do not match, and self-command is not defined
-			return ctx.ReplyBad(fmt.Sprintf("Unrecognized sub-command `%s`, try /help", subVerb))
+			return ctx.ReplyBad(fmt.Sprintf("Unrecognized sub-command `%s`, try `%shelp`", subVerb, config.C.Prefix))
 		}
 	}
 
@@ -190,6 +190,7 @@ func (c *CommandInstance) Execute(ctx domain.Context) error {
 			// If this command has sub-commands, display help
 			var lines []string
 			lines = append(lines, fmt.Sprintf("## `%s` Usage", c.matcher()))
+			lines = append(lines, "")
 			lines = append(lines, c.HelpMessage(0)...)
 			return ctx.ReplyBad(lines...)
 		} else {
@@ -232,11 +233,15 @@ func (c *CommandInstance) Execute(ctx domain.Context) error {
 		)
 	}
 
-	return ctx.ReplySuccess(
-		"```",
-		utils.LimitLog(utils.SafeConvertString(buf.Bytes()), logLimit),
-		"```",
-	)
+	var replyMessage []string
+	if buf.Len() > 0 {
+		replyMessage = append(replyMessage, "```")
+		replyMessage = append(replyMessage, utils.LimitLog(utils.SafeConvertString(buf.Bytes()), logLimit))
+		replyMessage = append(replyMessage, "```")
+	} else {
+		replyMessage = append(replyMessage, "*No output*")
+	}
+	return ctx.ReplySuccess(replyMessage...)
 }
 
 func (dc *RootCommand) HelpMessage(_ int) []string {
@@ -254,11 +259,16 @@ func (c *CommandInstance) HelpMessage(indent int) []string {
 	var lines []string
 
 	// Command (self) usage
-	operators := strings.Join(
-		lo.Map(c.operators, func(s string, _ int) string { return `:@` + s + `:` }),
-		"",
-	)
-	if operators == "" {
+	var operators string
+	if config.C.Mode == "traq" {
+		operators = strings.Join(
+			lo.Map(c.operators, func(s string, _ int) string { return `:@` + s + `:` }),
+			"",
+		)
+	} else {
+		operators = fmt.Sprintf("%d operator%s", len(c.operators), lo.Ternary(len(c.operators) == 1, "", "s"))
+	}
+	if len(c.operators) == 0 {
 		operators = "everyone"
 	}
 

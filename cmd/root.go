@@ -12,8 +12,9 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "DevOpsBot",
-	Short: "A traQ bot for DevOps command execution",
+	Use:          "DevOpsBot",
+	Short:        "A traQ bot for DevOps command execution",
+	SilenceUsage: true,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("DevOpsBot v%s initializing\n", utils.Version())
 	},
