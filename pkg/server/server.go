@@ -1,3 +1,4 @@
+// Package server provides ConoHa server related operations
 package server
 
 import (

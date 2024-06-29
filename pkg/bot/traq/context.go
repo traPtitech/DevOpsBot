@@ -1,8 +1,9 @@
-package bot
+package traq
 
 import (
 	"context"
 	"github.com/traPtitech/DevOpsBot/pkg/config"
+	"github.com/traPtitech/DevOpsBot/pkg/domain"
 	"github.com/traPtitech/traq-ws-bot/payload"
 	"go.uber.org/zap"
 	"strings"
@@ -14,6 +15,10 @@ import (
 
 type traqContext struct {
 	context.Context
+
+	// bot is base bot struct
+	bot *traqBot
+
 	// p BOTが受信したMESSAGE_CREATEDイベントの生のペイロード
 	p    *payload.MessageCreated
 	args []string
@@ -21,8 +26,9 @@ type traqContext struct {
 
 // sendTRAQMessage traQにメッセージ送信
 func (ctx *traqContext) sendTRAQMessage(channelID string, text string) error {
+	bot := ctx.bot
 	return utils.WithRetry(ctx, 10, func(ctx context.Context) error {
-		_, _, err := bot.API().
+		_, _, err := bot.bot.API().
 			ChannelApi.
 			PostMessage(ctx, channelID).
 			PostMessageRequest(traq.PostMessageRequest{Content: text}).
@@ -33,8 +39,9 @@ func (ctx *traqContext) sendTRAQMessage(channelID string, text string) error {
 
 // pushTRAQStamp traQのメッセージにスタンプを押す
 func (ctx *traqContext) pushTRAQStamp(messageID, stampID string) error {
+	bot := ctx.bot
 	return utils.WithRetry(ctx, 10, func(ctx context.Context) error {
-		_, err := bot.API().
+		_, err := bot.bot.API().
 			MessageApi.
 			AddMessageStamp(ctx, messageID, stampID).
 			PostMessageStampRequest(traq.PostMessageStampRequest{Count: 1}).
@@ -51,7 +58,7 @@ func (ctx *traqContext) Args() []string {
 	return ctx.args
 }
 
-func (ctx *traqContext) ShiftArgs() Context {
+func (ctx *traqContext) ShiftArgs() domain.Context {
 	return &traqContext{
 		Context: ctx.Context,
 		p:       ctx.p,
@@ -60,7 +67,7 @@ func (ctx *traqContext) ShiftArgs() Context {
 }
 
 func (ctx *traqContext) L() *zap.Logger {
-	return logger.With(
+	return ctx.bot.logger.With(
 		zap.String("executor", ctx.Executor()),
 		zap.String("command", ctx.p.Message.PlainText),
 		zap.Time("datetime", ctx.p.EventTime),

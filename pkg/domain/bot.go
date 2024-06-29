@@ -1,9 +1,14 @@
-package bot
+package domain
 
 import (
 	"context"
 	"go.uber.org/zap"
 )
+
+type Bot interface {
+	// Start connects the bot. Must block on success.
+	Start(ctx context.Context) error
+}
 
 // Context コマンド実行コンテキスト
 type Context interface {
@@ -31,4 +36,10 @@ type Context interface {
 	ReplyFailure(message ...string) error
 	// ReplyRunning コマンドメッセージにRunningスタンプをつけて返信します
 	ReplyRunning(message ...string) error
+}
+
+// Command コマンドインターフェース
+type Command interface {
+	Execute(ctx Context) error
+	HelpMessage(indent int) []string
 }

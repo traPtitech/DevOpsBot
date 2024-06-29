@@ -18,7 +18,7 @@ var rootCmd = &cobra.Command{
 		fmt.Printf("DevOpsBot v%s initializing\n", utils.Version())
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return bot.Run()
+		return bot.Run(cmd.Context())
 	},
 }
 

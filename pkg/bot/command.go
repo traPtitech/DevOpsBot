@@ -11,22 +11,17 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/traPtitech/DevOpsBot/pkg/config"
+	"github.com/traPtitech/DevOpsBot/pkg/domain"
 	"github.com/traPtitech/DevOpsBot/pkg/utils"
 )
 
-// command コマンドインターフェース
-type command interface {
-	execute(ctx Context) error
-	helpMessage(indent int) []string
-}
-
 var (
-	_ command = (*RootCommand)(nil)
-	_ command = (*CommandInstance)(nil)
+	_ domain.Command = (*RootCommand)(nil)
+	_ domain.Command = (*CommandInstance)(nil)
 )
 
 type RootCommand struct {
-	cmds map[string]command
+	cmds map[string]domain.Command
 }
 
 type CommandInstance struct {
@@ -39,12 +34,12 @@ type CommandInstance struct {
 	operators      []string
 
 	commandFile string
-	subCommands map[string]command
+	subCommands map[string]domain.Command
 }
 
 func Compile() (*RootCommand, error) {
 	cmd := &RootCommand{
-		cmds: make(map[string]command),
+		cmds: make(map[string]domain.Command),
 	}
 
 	// Compile templates
@@ -103,8 +98,8 @@ func Compile() (*RootCommand, error) {
 	return cmd, nil
 }
 
-func compileCommands(templates map[string]string, cc []*config.CommandConfig, leadingMatcher []string) (map[string]command, error) {
-	cmds := make(map[string]command)
+func compileCommands(templates map[string]string, cc []*config.CommandConfig, leadingMatcher []string) (map[string]domain.Command, error) {
+	cmds := make(map[string]domain.Command)
 
 	for _, ci := range cc {
 		// Validate
@@ -127,7 +122,7 @@ func compileCommands(templates map[string]string, cc []*config.CommandConfig, le
 			argsSyntax:     ci.ArgsSyntax,
 			argsPrefix:     ci.ArgsPrefix,
 			operators:      ci.Operators,
-			subCommands:    make(map[string]command),
+			subCommands:    make(map[string]domain.Command),
 		}
 
 		// Command (self)
@@ -152,7 +147,7 @@ func compileCommands(templates map[string]string, cc []*config.CommandConfig, le
 	return cmds, nil
 }
 
-func (dc *RootCommand) execute(ctx Context) error {
+func (dc *RootCommand) Execute(ctx domain.Context) error {
 	name := ctx.Args()[0]
 
 	c, ok := dc.cmds[name]
@@ -161,10 +156,10 @@ func (dc *RootCommand) execute(ctx Context) error {
 	}
 
 	ctx = ctx.ShiftArgs() // Cut matching args
-	return c.execute(ctx)
+	return c.Execute(ctx)
 }
 
-func (c *CommandInstance) execute(ctx Context) error {
+func (c *CommandInstance) Execute(ctx domain.Context) error {
 	// If this command has permitted operators defined, check operator
 	if len(c.operators) > 0 {
 		if !lo.Contains(c.operators, ctx.Executor()) {
@@ -180,7 +175,7 @@ func (c *CommandInstance) execute(ctx Context) error {
 		if ok {
 			// A sub-command match
 			ctx = ctx.ShiftArgs() // Cut matching args
-			return subCmd.execute(ctx)
+			return subCmd.Execute(ctx)
 		}
 
 		if c.commandFile == "" {
@@ -195,7 +190,7 @@ func (c *CommandInstance) execute(ctx Context) error {
 			// If this command has sub-commands, display help
 			var lines []string
 			lines = append(lines, fmt.Sprintf("## `%s` Usage", c.matcher()))
-			lines = append(lines, c.helpMessage(0)...)
+			lines = append(lines, c.HelpMessage(0)...)
 			return ctx.ReplyBad(lines...)
 		} else {
 			// Otherwise, just error
@@ -244,18 +239,18 @@ func (c *CommandInstance) execute(ctx Context) error {
 	)
 }
 
-func (dc *RootCommand) helpMessage(_ int) []string {
+func (dc *RootCommand) HelpMessage(_ int) []string {
 	var lines []string
 	names := lo.Keys(dc.cmds)
 	slices.Sort(names)
 	for _, name := range names {
 		cmd := dc.cmds[name]
-		lines = append(lines, cmd.helpMessage(0)...)
+		lines = append(lines, cmd.HelpMessage(0)...)
 	}
 	return lines
 }
 
-func (c *CommandInstance) helpMessage(indent int) []string {
+func (c *CommandInstance) HelpMessage(indent int) []string {
 	var lines []string
 
 	// Command (self) usage
@@ -285,7 +280,7 @@ func (c *CommandInstance) helpMessage(indent int) []string {
 	slices.Sort(subVerbs)
 	for _, subVerb := range subVerbs {
 		subCmd := c.subCommands[subVerb]
-		lines = append(lines, subCmd.helpMessage(indent+2)...)
+		lines = append(lines, subCmd.HelpMessage(indent+2)...)
 	}
 
 	return lines
