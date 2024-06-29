@@ -36,12 +36,6 @@ func NewBot(rootCmd domain.Command, logger *zap.Logger) (domain.Bot, error) {
 }
 
 func (s *slackBot) Start(ctx context.Context) error {
-	// Join channel
-	_, _, _, err := s.api.JoinConversation(config.C.Slack.ChannelID)
-	if err != nil {
-		return err
-	}
-
 	go func() {
 		for e := range s.sock.Events {
 			err := s.handle(e)
