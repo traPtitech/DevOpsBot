@@ -10,8 +10,13 @@ import (
 var C Config
 
 type Config struct {
+	// Mode selects the origin of the bot.
+	// Available values: "traq", "slack"
+	Mode string `mapstructure:"mode" yaml:"mode"`
 	// Traq is traQ-related authentication config
 	Traq TraqConfig `mapstructure:"traq" yaml:"traq"`
+	// Slack is slack-related authentication config
+	Slack SlackConfig `mapstructure:"slack" yaml:"slack"`
 
 	// Prefix is bot command prefix
 	Prefix string `mapstructure:"prefix" yaml:"prefix"`
@@ -38,8 +43,14 @@ type TraqConfig struct {
 	Token string `mapstructure:"token" yaml:"token"`
 }
 
+type SlackConfig struct {
+	OAuthToken string `mapstructure:"oauthToken" yaml:"oauthToken"`
+	AppToken   string `mapstructure:"appToken" yaml:"appToken"`
+	// ChannelID is the channel in which to await for commands
+	ChannelID string `mapstructure:"channelID" yaml:"channelID"`
+}
+
 type Stamps struct {
-	Accept     string `mapstructure:"accept" yaml:"accept"`
 	BadCommand string `mapstructure:"badCommand" yaml:"badCommand"`
 	Forbid     string `mapstructure:"forbid" yaml:"forbid"`
 	Success    string `mapstructure:"success" yaml:"success"`
@@ -96,13 +107,18 @@ type ServersConfig struct {
 }
 
 func init() {
+	viper.SetDefault("mode", "traq")
+
 	viper.SetDefault("traq.origin", "wss://q.trap.jp")
 	viper.SetDefault("traq.channelID", "")
 	viper.SetDefault("traq.token", "")
 
+	viper.SetDefault("slack.oauthToken", "")
+	viper.SetDefault("slack.appToken", "")
+	viper.SetDefault("slack.channelID", "")
+
 	viper.SetDefault("prefix", "/")
 
-	viper.SetDefault("stamps.accept", "")
 	viper.SetDefault("stamps.badCommand", "")
 	viper.SetDefault("stamps.forbid", "")
 	viper.SetDefault("stamps.success", "")

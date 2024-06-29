@@ -23,6 +23,28 @@ type traqContext struct {
 	args []string
 }
 
+func (ctx *traqContext) Executor() string {
+	return ctx.p.Message.User.Name
+}
+
+func (ctx *traqContext) Args() []string {
+	return ctx.args
+}
+
+func (ctx *traqContext) ShiftArgs() domain.Context {
+	newCtx := *ctx
+	newCtx.args = newCtx.args[1:]
+	return &newCtx
+}
+
+func (ctx *traqContext) L() *zap.Logger {
+	return ctx.logger.With(
+		zap.String("executor", ctx.Executor()),
+		zap.String("command", ctx.p.Message.PlainText),
+		zap.Time("datetime", ctx.p.EventTime),
+	)
+}
+
 // sendTRAQMessage traQにメッセージ送信
 func (ctx *traqContext) sendTRAQMessage(channelID string, text string) error {
 	api := ctx.api
@@ -49,28 +71,6 @@ func (ctx *traqContext) pushTRAQStamp(messageID, stampID string) error {
 	})
 }
 
-func (ctx *traqContext) Executor() string {
-	return ctx.p.Message.User.Name
-}
-
-func (ctx *traqContext) Args() []string {
-	return ctx.args
-}
-
-func (ctx *traqContext) ShiftArgs() domain.Context {
-	newCtx := *ctx
-	newCtx.args = newCtx.args[1:]
-	return &newCtx
-}
-
-func (ctx *traqContext) L() *zap.Logger {
-	return ctx.logger.With(
-		zap.String("executor", ctx.Executor()),
-		zap.String("command", ctx.p.Message.PlainText),
-		zap.Time("datetime", ctx.p.EventTime),
-	)
-}
-
 func (ctx *traqContext) reply(message ...string) error {
 	return ctx.sendTRAQMessage(ctx.p.Message.ChannelID, strings.Join(message, "\n"))
 }
@@ -95,10 +95,6 @@ func (ctx *traqContext) ReplyBad(message ...string) error {
 
 func (ctx *traqContext) ReplyForbid(message ...string) error {
 	return ctx.replyWithStamp(config.C.Stamps.Forbid, message...)
-}
-
-func (ctx *traqContext) ReplyAccept(message ...string) error {
-	return ctx.replyWithStamp(config.C.Stamps.Accept, message...)
 }
 
 func (ctx *traqContext) ReplySuccess(message ...string) error {

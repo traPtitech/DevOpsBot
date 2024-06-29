@@ -28,8 +28,6 @@ type Context interface {
 	ReplyBad(message ...string) error
 	// ReplyForbid コマンドメッセージにForbidスタンプをつけて返信します
 	ReplyForbid(message ...string) error
-	// ReplyAccept コマンドメッセージにAcceptスタンプをつけて返信します
-	ReplyAccept(message ...string) error
 	// ReplySuccess コマンドメッセージにSuccessスタンプをつけて返信します
 	ReplySuccess(message ...string) error
 	// ReplyFailure コマンドメッセージにFailureスタンプをつけて返信します
