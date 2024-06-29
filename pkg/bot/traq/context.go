@@ -16,9 +16,8 @@ import (
 type traqContext struct {
 	context.Context
 
-	// bot is base bot struct
-	bot *traqBot
-
+	api    *traq.APIClient
+	logger *zap.Logger
 	// p BOTが受信したMESSAGE_CREATEDイベントの生のペイロード
 	p    *payload.MessageCreated
 	args []string
@@ -26,9 +25,9 @@ type traqContext struct {
 
 // sendTRAQMessage traQにメッセージ送信
 func (ctx *traqContext) sendTRAQMessage(channelID string, text string) error {
-	bot := ctx.bot
+	api := ctx.api
 	return utils.WithRetry(ctx, 10, func(ctx context.Context) error {
-		_, _, err := bot.bot.API().
+		_, _, err := api.
 			ChannelApi.
 			PostMessage(ctx, channelID).
 			PostMessageRequest(traq.PostMessageRequest{Content: text}).
@@ -39,9 +38,9 @@ func (ctx *traqContext) sendTRAQMessage(channelID string, text string) error {
 
 // pushTRAQStamp traQのメッセージにスタンプを押す
 func (ctx *traqContext) pushTRAQStamp(messageID, stampID string) error {
-	bot := ctx.bot
+	api := ctx.api
 	return utils.WithRetry(ctx, 10, func(ctx context.Context) error {
-		_, err := bot.bot.API().
+		_, err := api.
 			MessageApi.
 			AddMessageStamp(ctx, messageID, stampID).
 			PostMessageStampRequest(traq.PostMessageStampRequest{Count: 1}).
@@ -59,15 +58,13 @@ func (ctx *traqContext) Args() []string {
 }
 
 func (ctx *traqContext) ShiftArgs() domain.Context {
-	return &traqContext{
-		Context: ctx.Context,
-		p:       ctx.p,
-		args:    ctx.args[1:],
-	}
+	newCtx := *ctx
+	newCtx.args = newCtx.args[1:]
+	return &newCtx
 }
 
 func (ctx *traqContext) L() *zap.Logger {
-	return ctx.bot.logger.With(
+	return ctx.logger.With(
 		zap.String("executor", ctx.Executor()),
 		zap.String("command", ctx.p.Message.PlainText),
 		zap.Time("datetime", ctx.p.EventTime),

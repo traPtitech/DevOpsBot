@@ -13,8 +13,7 @@ import (
 )
 
 type traqBot struct {
-	bot    *traqwsbot.Bot
-	logger *zap.Logger
+	bot *traqwsbot.Bot
 }
 
 func NewBot(rootCmd domain.Command, logger *zap.Logger) (domain.Bot, error) {
@@ -26,11 +25,10 @@ func NewBot(rootCmd domain.Command, logger *zap.Logger) (domain.Bot, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating bot: %w", err)
 	}
-	bot.OnMessageCreated(botMessageReceived(rootCmd))
+	bot.OnMessageCreated(botMessageReceived(bot, logger, rootCmd))
 
 	return &traqBot{
-		bot:    bot,
-		logger: logger,
+		bot: bot,
 	}, nil
 }
 
@@ -43,7 +41,7 @@ func (b *traqBot) Start(_ context.Context) error {
 }
 
 // botMessageReceived BOTのMESSAGE_CREATEDイベントハンドラ
-func botMessageReceived(rootCmd domain.Command) func(p *payload.MessageCreated) {
+func botMessageReceived(bot *traqwsbot.Bot, logger *zap.Logger, rootCmd domain.Command) func(p *payload.MessageCreated) {
 	return func(p *payload.MessageCreated) {
 		// Validate command execution context
 		if p.Message.User.Bot {
@@ -59,7 +57,10 @@ func botMessageReceived(rootCmd domain.Command) func(p *payload.MessageCreated) 
 		// Prepare command args
 		ctx := &traqContext{
 			Context: context.Background(),
+			api:     bot.API(),
+			logger:  logger,
 			p:       p,
+			args:    nil,
 		}
 		prefixStripped := strings.TrimPrefix(p.Message.PlainText, config.C.Prefix)
 		args, err := shellquote.Split(prefixStripped)
