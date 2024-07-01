@@ -9,7 +9,7 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/samber/lo v1.39.0
 	github.com/slack-go/slack v0.13.0
-	github.com/spf13/cobra v1.8.0
+	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.18.2
 	github.com/traPtitech/go-traq v0.0.0-20240420012203-0152d96098b0
 	github.com/traPtitech/traq-ws-bot v1.1.3
