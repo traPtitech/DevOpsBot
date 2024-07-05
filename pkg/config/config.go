@@ -52,6 +52,8 @@ type SlackConfig struct {
 	//
 	// Trusted workflows are allowed to impersonate the execution user via adding user mention at the start of message.
 	TrustedWorkflows []string `mapstructure:"trustedWorkflows" yaml:"trustedWorkflows"`
+	// Colors sets colors used for reply blocks.
+	Colors Stamps `mapstructure:"colors" yaml:"colors"`
 }
 
 type Stamps struct {
@@ -122,6 +124,12 @@ func init() {
 	viper.SetDefault("slack.appToken", "")
 	viper.SetDefault("slack.channelID", "")
 	viper.SetDefault("slack.trustedWorkflows", nil)
+
+	viper.SetDefault("slack.colors.badCommand", "#dd0204")
+	viper.SetDefault("slack.colors.forbid", "#dd0204")
+	viper.SetDefault("slack.colors.success", "#56c59c")
+	viper.SetDefault("slack.colors.failure", "#dd0204")
+	viper.SetDefault("slack.colors.running", "#e3e4e6")
 
 	viper.SetDefault("prefix", "/")
 
