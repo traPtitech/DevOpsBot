@@ -10,6 +10,14 @@ type Bot interface {
 	Start(ctx context.Context) error
 }
 
+type StampNames struct {
+	BadCommand string
+	Forbid     string
+	Success    string
+	Failure    string
+	Running    string
+}
+
 // Context コマンド実行コンテキスト
 type Context interface {
 	context.Context
@@ -23,7 +31,10 @@ type Context interface {
 
 	// L returns logger.
 	L() *zap.Logger
+	// MessageLimit returns reply character limit.
 	MessageLimit() int
+	// StampNames returns list of stamp names which can be used in raw text.
+	StampNames() *StampNames
 
 	// ReplyBad コマンドメッセージにBadスタンプをつけて返信します
 	ReplyBad(message ...string) error

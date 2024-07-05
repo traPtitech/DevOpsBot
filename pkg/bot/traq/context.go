@@ -16,8 +16,10 @@ import (
 type traqContext struct {
 	context.Context
 
-	api    *traq.APIClient
-	logger *zap.Logger
+	api        *traq.APIClient
+	logger     *zap.Logger
+	stampNames *domain.StampNames
+
 	// p BOTが受信したMESSAGE_CREATEDイベントの生のペイロード
 	p    *payload.MessageCreated
 	args []string
@@ -47,6 +49,10 @@ func (ctx *traqContext) L() *zap.Logger {
 
 func (ctx *traqContext) MessageLimit() int {
 	return 9900
+}
+
+func (ctx *traqContext) StampNames() *domain.StampNames {
+	return ctx.stampNames
 }
 
 // sendTRAQMessage traQにメッセージ送信

@@ -47,6 +47,16 @@ func (ctx *slackContext) MessageLimit() int {
 	return 2500
 }
 
+func (ctx *slackContext) StampNames() *domain.StampNames {
+	return &domain.StampNames{
+		BadCommand: config.C.Stamps.BadCommand,
+		Forbid:     config.C.Stamps.Forbid,
+		Success:    config.C.Stamps.Success,
+		Failure:    config.C.Stamps.Failure,
+		Running:    config.C.Stamps.Running,
+	}
+}
+
 func (ctx *slackContext) sendSlackMessage(channelID string, text string) error {
 	api := ctx.api
 	return utils.WithRetry(ctx, 10, func(ctx context.Context) error {

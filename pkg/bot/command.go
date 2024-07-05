@@ -228,7 +228,7 @@ func (c *CommandInstance) Execute(ctx domain.Context) error {
 	err := cmd.Run()
 	if err != nil {
 		return ctx.ReplyFailure(
-			fmt.Sprintf("exec failed: %v", err),
+			fmt.Sprintf(":%s: exec failed: %v", ctx.StampNames().Failure, err),
 			"```",
 			utils.LimitLog(utils.SafeConvertString(buf.Bytes()), logLimit),
 			"```",
@@ -237,6 +237,7 @@ func (c *CommandInstance) Execute(ctx domain.Context) error {
 
 	var replyMessage []string
 	if buf.Len() > 0 {
+		replyMessage = append(replyMessage, fmt.Sprintf(":%s:", ctx.StampNames().Success))
 		replyMessage = append(replyMessage, "```")
 		replyMessage = append(replyMessage, utils.LimitLog(utils.SafeConvertString(buf.Bytes()), logLimit))
 		replyMessage = append(replyMessage, "```")
