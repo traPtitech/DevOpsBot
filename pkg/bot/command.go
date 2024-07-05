@@ -3,6 +3,7 @@ package bot
 import (
 	"bytes"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"slices"
@@ -148,6 +149,7 @@ func compileCommands(templates map[string]string, cc []*config.CommandConfig, le
 }
 
 func (dc *RootCommand) Execute(ctx domain.Context) error {
+	slog.Info("Executing command", "args", ctx.Args(), "executor", ctx.Executor())
 	name := ctx.Args()[0]
 
 	c, ok := dc.cmds[name]

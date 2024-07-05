@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 	"github.com/kballard/go-shellquote"
+	"github.com/samber/lo"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
 	"github.com/slack-go/slack/socketmode"
 	"github.com/traPtitech/DevOpsBot/pkg/config"
 	"github.com/traPtitech/DevOpsBot/pkg/domain"
 	"go.uber.org/zap"
+	"log/slog"
+	"regexp"
 	"strings"
 )
 
@@ -94,17 +97,55 @@ func (s *slackBot) handle(e socketmode.Event) error {
 	return nil
 }
 
+var mentionRegexp = regexp.MustCompile("^<@(\\w+)(?:\\|\\w+)?>")
+
+func (s *slackBot) getExecutorID(ev *slackevents.MessageEvent) (executorID string, commandText string, ok bool) {
+	executorID = ev.User
+	commandText = ev.Text
+
+	if ev.BotID == "" {
+		// Normal execution by user
+		return executorID, commandText, true
+	}
+
+	// Execution by bots - check if they are the trusted workflow members
+	executorID = ev.BotID
+	mentionIndices := mentionRegexp.FindStringSubmatchIndex(commandText)
+	if !lo.Contains(config.C.Slack.TrustedWorkflows, executorID) {
+		// If they are not trusted, ignore bots
+		if mentionIndices != nil {
+			// Log bot ID as they are difficult to get from UI
+			slog.Info("Skipping impersonation request from bot", "bot_id", executorID, "display_name", ev.Username)
+		}
+		return "", "", false
+	}
+
+	// Check if the workflow is impersonating execution user
+	if mentionIndices != nil && mentionIndices[0] == 0 {
+		// Impersonate user
+		executorID = commandText[mentionIndices[2]:mentionIndices[3]]
+		// Trim the mention part
+		commandText = commandText[mentionIndices[1]:]
+		commandText = strings.TrimSpace(commandText)
+		return executorID, commandText, true
+	} else {
+		// If they are not impersonating, fallback the executor to its own ID
+		return executorID, commandText, true
+	}
+}
+
 func (s *slackBot) handleEventsAPI(e *slackevents.EventsAPIEvent) error {
 	switch ev := e.InnerEvent.Data.(type) {
 	case *slackevents.MessageEvent:
 		// Validate command execution context
-		if ev.BotID != "" {
-			return nil // Ignore bots
+		executorID, commandText, ok := s.getExecutorID(ev)
+		if !ok {
+			return nil // Not a valid user
 		}
 		if ev.Channel != config.C.Slack.ChannelID {
 			return nil // Ignore messages not from the specified channel
 		}
-		if !strings.HasPrefix(ev.Text, config.C.Prefix) {
+		if !strings.HasPrefix(commandText, config.C.Prefix) {
 			return nil // Command prefix does not match
 		}
 
@@ -113,8 +154,8 @@ func (s *slackBot) handleEventsAPI(e *slackevents.EventsAPIEvent) error {
 			Channel:   ev.Channel,
 			Timestamp: ev.TimeStamp,
 		}
-		commandText := strings.Trim(ev.Text, config.C.Prefix)
-		return s.executeCommand(commandText, messageRef, ev.User)
+		commandText = strings.Trim(commandText, config.C.Prefix)
+		return s.executeCommand(commandText, messageRef, executorID)
 	default:
 		return nil
 	}

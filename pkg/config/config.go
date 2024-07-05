@@ -48,6 +48,10 @@ type SlackConfig struct {
 	AppToken   string `mapstructure:"appToken" yaml:"appToken"`
 	// ChannelID is the channel in which to await for commands
 	ChannelID string `mapstructure:"channelID" yaml:"channelID"`
+	// TrustedWorkflows is the list of bot IDs of trusted workflows.
+	//
+	// Trusted workflows are allowed to impersonate the execution user via adding user mention at the start of message.
+	TrustedWorkflows []string `mapstructure:"trustedWorkflows" yaml:"trustedWorkflows"`
 }
 
 type Stamps struct {
@@ -85,7 +89,8 @@ type CommandConfig struct {
 	ArgsSyntax string `mapstructure:"argsSyntax" yaml:"argsSyntax"`
 	// ArgsPrefix is always prefixed the arguments (before the user-provided arguments, if any) when executing the command template.
 	ArgsPrefix []string `mapstructure:"argsPrefix" yaml:"argsPrefix"`
-	// Operators is an optional list of traQ user IDs who are allowed to execute this command (and any sub-commands).
+	// Operators is an optional list of user IDs (traQ IDs in traQ, member or bot IDs in Slack)
+	// who are allowed to execute this command (and any sub-commands).
 	// If left empty, everyone will be able to execute this command (and any sub-commands).
 	Operators []string `mapstructure:"operators" yaml:"operators"`
 
@@ -116,6 +121,7 @@ func init() {
 	viper.SetDefault("slack.oauthToken", "")
 	viper.SetDefault("slack.appToken", "")
 	viper.SetDefault("slack.channelID", "")
+	viper.SetDefault("slack.trustedWorkflows", nil)
 
 	viper.SetDefault("prefix", "/")
 
