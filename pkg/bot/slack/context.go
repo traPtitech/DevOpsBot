@@ -42,6 +42,11 @@ func (ctx *slackContext) L() *zap.Logger {
 	)
 }
 
+func (ctx *slackContext) MessageLimit() int {
+	// https://stackoverflow.com/questions/60344831/slack-api-invalid-block
+	return 2500
+}
+
 func (ctx *slackContext) sendSlackMessage(channelID string, text string) error {
 	api := ctx.api
 	return utils.WithRetry(ctx, 10, func(ctx context.Context) error {

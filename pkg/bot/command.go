@@ -221,7 +221,7 @@ func (c *CommandInstance) Execute(ctx domain.Context) error {
 	cmd.Stdout = &buf
 	cmd.Stderr = &buf
 
-	const logLimit = 9900
+	logLimit := ctx.MessageLimit() - 100 /* margin */
 
 	err := cmd.Run()
 	if err != nil {

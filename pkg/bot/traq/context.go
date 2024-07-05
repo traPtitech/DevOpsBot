@@ -45,6 +45,10 @@ func (ctx *traqContext) L() *zap.Logger {
 	)
 }
 
+func (ctx *traqContext) MessageLimit() int {
+	return 9900
+}
+
 // sendTRAQMessage traQにメッセージ送信
 func (ctx *traqContext) sendTRAQMessage(channelID string, text string) error {
 	api := ctx.api

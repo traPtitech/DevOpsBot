@@ -23,6 +23,7 @@ type Context interface {
 
 	// L returns logger.
 	L() *zap.Logger
+	MessageLimit() int
 
 	// ReplyBad コマンドメッセージにBadスタンプをつけて返信します
 	ReplyBad(message ...string) error
