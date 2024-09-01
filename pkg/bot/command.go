@@ -85,7 +85,7 @@ func Compile() (*RootCommand, error) {
 	}
 
 	var err error
-	cmd.cmds, err = compileCommands(templates, config.C.Commands, nil)
+	cmd.cmds, err = compileCommands(templates, config.C.Commands, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("compiling root command: %w", err)
 	}
@@ -99,7 +99,7 @@ func Compile() (*RootCommand, error) {
 	return cmd, nil
 }
 
-func compileCommands(templates map[string]string, cc []*config.CommandConfig, leadingMatcher []string) (map[string]domain.Command, error) {
+func compileCommands(templates map[string]string, cc []*config.CommandConfig, leadingMatcher []string, parentOperators []string) (map[string]domain.Command, error) {
 	cmds := make(map[string]domain.Command)
 
 	for _, ci := range cc {
@@ -113,6 +113,27 @@ func compileCommands(templates map[string]string, cc []*config.CommandConfig, le
 		if ci.TemplateRef == "" && len(ci.SubCommands) == 0 {
 			return nil, fmt.Errorf("no self command or sub-commands defined")
 		}
+		operators := ci.Operators // If the parent allows everyone, this command's configuration is used
+		if len(parentOperators) > 0 {
+			// Take intersection with parent operators config, if parent has set one
+			if len(operators) == 0 {
+				operators = parentOperators // This command allows everyone, just inherit the parent operators
+			} else {
+				operators = lo.Intersect(operators, parentOperators)
+				// Ensure the intersection is not empty
+				if len(operators) == 0 {
+					return nil, fmt.Errorf(
+						"there will be no operators for command %s! Make sure to write all operators to parent commands which have operators set",
+						ci.Name)
+				}
+				// Display warning if the command's operator was narrowed from definition
+				if len(operators) < len(ci.Operators) {
+					slog.Warn(fmt.Sprintf(
+						"Compiling command \"%s\": number of operators was narrowed from %d to %d. Make sure to write all operators to parent commands which have operators set.",
+						strings.Join(append(utils.Copy(leadingMatcher), ci.Name), " "), len(ci.Operators), len(operators)))
+				}
+			}
+		}
 
 		// Create a command instance
 		cmd := &CommandInstance{
@@ -122,7 +143,7 @@ func compileCommands(templates map[string]string, cc []*config.CommandConfig, le
 			allowArgs:      ci.AllowArgs,
 			argsSyntax:     ci.ArgsSyntax,
 			argsPrefix:     ci.ArgsPrefix,
-			operators:      ci.Operators,
+			operators:      operators,
 			subCommands:    make(map[string]domain.Command),
 		}
 
@@ -137,7 +158,7 @@ func compileCommands(templates map[string]string, cc []*config.CommandConfig, le
 
 		// Sub-commands, if any
 		var err error
-		cmd.subCommands, err = compileCommands(templates, ci.SubCommands, append(leadingMatcher, ci.Name))
+		cmd.subCommands, err = compileCommands(templates, ci.SubCommands, append(leadingMatcher, ci.Name), operators)
 		if err != nil {
 			return nil, fmt.Errorf("compiling sub-commands of %s: %w", ci.Name, err)
 		}
