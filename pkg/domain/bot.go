@@ -51,5 +51,5 @@ type Context interface {
 // Command コマンドインターフェース
 type Command interface {
 	Execute(ctx Context) error
-	HelpMessage(indent int) []string
+	HelpMessage(indent int, formatSub bool) []string
 }

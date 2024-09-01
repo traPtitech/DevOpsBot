@@ -193,7 +193,7 @@ func (c *CommandInstance) Execute(ctx domain.Context) error {
 			var lines []string
 			lines = append(lines, fmt.Sprintf("## `%s` Usage", c.matcher()))
 			lines = append(lines, "")
-			lines = append(lines, c.HelpMessage(0)...)
+			lines = append(lines, c.HelpMessage(0, true)...)
 			return ctx.ReplyBad(lines...)
 		} else {
 			// Otherwise, just error
@@ -247,18 +247,18 @@ func (c *CommandInstance) Execute(ctx domain.Context) error {
 	return ctx.ReplySuccess(replyMessage...)
 }
 
-func (dc *RootCommand) HelpMessage(_ int) []string {
+func (dc *RootCommand) HelpMessage(_ int, _ bool) []string {
 	var lines []string
 	names := lo.Keys(dc.cmds)
 	slices.Sort(names)
 	for _, name := range names {
 		cmd := dc.cmds[name]
-		lines = append(lines, cmd.HelpMessage(0)...)
+		lines = append(lines, cmd.HelpMessage(0, false)...)
 	}
 	return lines
 }
 
-func (c *CommandInstance) HelpMessage(indent int) []string {
+func (c *CommandInstance) HelpMessage(indent int, formatSub bool) []string {
 	var lines []string
 
 	// Command (self) usage
@@ -275,25 +275,33 @@ func (c *CommandInstance) HelpMessage(indent int) []string {
 		operators = "everyone"
 	}
 
+	var subCommandsNum string
+	if len(c.subCommands) > 0 {
+		subCommandsNum = fmt.Sprintf(", %d sub-command%s", len(c.subCommands), lo.Ternary(len(c.subCommands) == 1, "", "s"))
+	}
+
 	syntax := c.matcher()
 	if c.argsSyntax != "" {
 		syntax += " " + c.argsSyntax
 	}
 
 	lines = append(lines, fmt.Sprintf(
-		"%s- `%s`%s (%s)",
+		"%s- `%s`%s (%s%s)",
 		strings.Repeat(" ", indent),
 		syntax,
 		lo.Ternary(c.description != "", " - "+c.description, ""),
 		operators,
+		subCommandsNum,
 	))
 
 	// Sub-commands usage
-	subVerbs := lo.Keys(c.subCommands)
-	slices.Sort(subVerbs)
-	for _, subVerb := range subVerbs {
-		subCmd := c.subCommands[subVerb]
-		lines = append(lines, subCmd.HelpMessage(indent+2)...)
+	if formatSub {
+		subVerbs := lo.Keys(c.subCommands)
+		slices.Sort(subVerbs)
+		for _, subVerb := range subVerbs {
+			subCmd := c.subCommands[subVerb]
+			lines = append(lines, subCmd.HelpMessage(indent+2, false)...)
+		}
 	}
 
 	return lines
