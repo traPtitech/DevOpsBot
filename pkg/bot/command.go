@@ -182,6 +182,40 @@ func (dc *RootCommand) Execute(ctx domain.Context) error {
 	return c.Execute(ctx)
 }
 
+func (dc *RootCommand) HasSubcommands() bool {
+	return len(dc.cmds) > 0
+}
+
+func (dc *RootCommand) GetSubcommand(verb string) (domain.Command, bool) {
+	c, ok := dc.cmds[verb]
+	return c, ok
+}
+
+func (dc *RootCommand) getMatchingCommand(args []string) (domain.Command, bool) {
+	cur, ok := dc.GetSubcommand(args[0])
+	if !ok {
+		return nil, false
+	}
+	for _, arg := range args[1:] {
+		cur, ok = cur.GetSubcommand(arg)
+		if !ok {
+			return nil, false
+		}
+	}
+	return cur, true
+}
+
+func (dc *RootCommand) HelpMessage(_ int, _ bool) []string {
+	var lines []string
+	names := lo.Keys(dc.cmds)
+	slices.Sort(names)
+	for _, name := range names {
+		cmd := dc.cmds[name]
+		lines = append(lines, cmd.HelpMessage(0, false)...)
+	}
+	return lines
+}
+
 func (c *CommandInstance) Execute(ctx domain.Context) error {
 	// If this command has permitted operators defined, check operator
 	if len(c.operators) > 0 {
@@ -268,15 +302,13 @@ func (c *CommandInstance) Execute(ctx domain.Context) error {
 	return ctx.ReplySuccess(replyMessage...)
 }
 
-func (dc *RootCommand) HelpMessage(_ int, _ bool) []string {
-	var lines []string
-	names := lo.Keys(dc.cmds)
-	slices.Sort(names)
-	for _, name := range names {
-		cmd := dc.cmds[name]
-		lines = append(lines, cmd.HelpMessage(0, false)...)
-	}
-	return lines
+func (c *CommandInstance) HasSubcommands() bool {
+	return len(c.subCommands) > 0
+}
+
+func (c *CommandInstance) GetSubcommand(verb string) (domain.Command, bool) {
+	sub, ok := c.subCommands[verb]
+	return sub, ok
 }
 
 func (c *CommandInstance) HelpMessage(indent int, formatSub bool) []string {

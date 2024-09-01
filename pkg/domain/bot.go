@@ -51,5 +51,7 @@ type Context interface {
 // Command コマンドインターフェース
 type Command interface {
 	Execute(ctx Context) error
+	HasSubcommands() bool
+	GetSubcommand(verb string) (Command, bool)
 	HelpMessage(indent int, formatSub bool) []string
 }
