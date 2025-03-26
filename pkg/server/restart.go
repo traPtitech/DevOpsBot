@@ -12,12 +12,18 @@ import (
 )
 
 type restartCommand struct {
-	server *subCommand
 }
 
 type m map[string]any
 
-func (sc *restartCommand) Execute(serverID string, args []string) error {
+func (sc *restartCommand) Execute(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("invalid arguments, expected server id")
+	}
+
+	serverID := args[0]
+	args = args[1:]
+
 	if len(args) < 1 {
 		return fmt.Errorf("invalid arguments, expected restart type (SOFT or HARD)")
 	}

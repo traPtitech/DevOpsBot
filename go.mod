@@ -14,6 +14,7 @@ require (
 	github.com/traPtitech/go-traq v0.0.0-20240725071454-97c7b85dc879
 	github.com/traPtitech/traq-ws-bot v1.2.1
 	go.uber.org/zap v1.27.0
+	golang.org/x/sync v0.7.0
 )
 
 require (
