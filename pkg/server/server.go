@@ -11,6 +11,7 @@ type ServersCommand struct {
 
 func Compile() (*ServersCommand, error) {
 	cmd := &ServersCommand{}
+	cmd.Commands = make(map[string]command)
 
 	cmd.Commands["restart"] = &restartCommand{}
 	cmd.Commands["hosts"] = &hostsCommand{}
