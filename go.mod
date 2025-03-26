@@ -8,7 +8,7 @@ require (
 	github.com/dghubble/sling v1.4.2
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/samber/lo v1.47.0
-	github.com/slack-go/slack v0.15.0
+	github.com/slack-go/slack v0.16.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 	github.com/traPtitech/go-traq v0.0.0-20240725071454-97c7b85dc879
