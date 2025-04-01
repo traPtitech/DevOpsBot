@@ -1,8 +1,7 @@
 module github.com/traPtitech/DevOpsBot
 
 go 1.22
-
-toolchain go1.22.0
+toolchain go1.24.1
 
 require (
 	github.com/dghubble/sling v1.4.2
@@ -14,7 +13,7 @@ require (
 	github.com/traPtitech/go-traq v0.0.0-20240725071454-97c7b85dc879
 	github.com/traPtitech/traq-ws-bot v1.2.1
 	go.uber.org/zap v1.27.0
-	golang.org/x/sync v0.7.0
+	golang.org/x/sync v0.12.0
 )
 
 require (
